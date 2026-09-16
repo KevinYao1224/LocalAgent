@@ -3,10 +3,10 @@ from typing import Any
 import httpx
 
 from llm.base import LLM, Message, ModelResponse, ToolCall
+from tools.base import Tool
 
 
 class OllamaClient(LLM):
-
     def __init__(
         self,
         model: str,
@@ -19,24 +19,60 @@ class OllamaClient(LLM):
             base_url=base_url,
             timeout=timeout
         )
+    
+    def _convert_tool(self, tool: Tool) -> dict[str, Any]:
+        return {
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": tool.parameters,
+            },
+        }
+    
+    def _convert_message(self, message: Message) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "role": message.role,
+            "content": message.content,
+        }
+
+        if message.tool_name is not None:
+            data["tool_name"] = message.tool_name
+        
+        if message.tool_calls:
+            data["tool_calls"] = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": call.name,
+                        "arguments": call.arguments,
+                    },
+                }
+                for call in message.tool_calls
+            ]
+        
+        return data
 
     def chat(
         self,
         messages: list[Message],
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[Tool] | None = None,
     ) -> ModelResponse:
 
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": [
-                message.to_dict()
+                self._convert_message(message)
                 for message in messages
             ],
             "stream": False,
         }
 
         if tools:
-            payload["tools"] = tools
+            payload["tools"] = [
+                self._convert_tool(tool)
+                for tool in tools
+            ]
 
         response = self._client.post(
             "/api/chat",
@@ -51,16 +87,13 @@ class OllamaClient(LLM):
 
         tool_calls: list[ToolCall] = []
 
-        # 只处理 function 类型的 tool 调用
         for item in message.get("tool_calls", []):
             function = item["function"]
 
-            tool_calls.append(
-                ToolCall(
-                    name=function["name"],
-                    arguments=function.get("arguments", {}),
-                )
-            )
+            tool_calls.append(ToolCall(
+                name=function["name"],
+                arguments=function.get("arguments", {})
+            ))
 
         return ModelResponse(
             content=message.get("content", ""),
