@@ -3,7 +3,7 @@ from typing import Any
 from tools.base import Tool
 
 
-class ToolNotFountException(Exception):
+class ToolNotFoundError(Exception):
     pass
 
 
@@ -20,14 +20,12 @@ class ToolRegistry:
         self._tools[tool.name] = tool
 
     def get(self, name: str) -> Tool:
-        tool = self._tools[name]
-
-        if tool:
-            return tool
-        else:
-            raise ToolNotFountException(
+        try:
+            return self._tools[name]
+        except KeyError as exc:
+            raise ToolNotFoundError(
                 f"Tool '{name}' is not registered."
-            )
+            ) from exc
 
     def execute(
         self,

@@ -1,3 +1,4 @@
+from agent.loop import AgentLoop, StopReason
 from llm.base import Message
 from llm.ollama import OllamaClient
 
@@ -35,55 +36,17 @@ def main():
     with OllamaClient(
         model=MODEL,
     ) as llm:
-        response = llm.chat(
-            messages=messages,
-            tools=registry.all(),
+        agent = AgentLoop(
+            llm=llm,
+            registry=registry,
+            max_steps=5,
         )
+        result = agent.run(messages)
 
-        print("Model response:", response.content)
-
-        messages.append(Message(
-            role="assistant",
-            content=response.content,
-            tool_calls=response.tool_calls
-        ))
-
-        if not response.tool_calls:
-            print(
-                "Model did not request a tool."
-            )
-            return
-
-        for call in response.tool_calls:
-            print(
-                "Tool requested:",
-                call.name,
-                call.arguments,
-            )
-
-            result = registry.execute(
-                call.name,
-                call.arguments,
-            )
-
-            print("Tool result:", result)
-
-            messages.append(Message(
-                role = "tool",
-                tool_name = call.name,
-                content = str(result),
-            ))
-        
-        final_response = llm.chat(
-            messages=messages,
-            tools=registry.all(),
-        )
-
-        print("------")
-        print(
-            "Final answer:",
-            final_response.content,
-        )
+        if result.stop_reason is StopReason.MAX_STEPS:
+            print(f"Agent stopped after {result.steps} steps.")
+        else:
+            print("Final answer:", result.response.content)
 
 
 if __name__ == "__main__":

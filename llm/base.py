@@ -24,7 +24,7 @@ class Message:
 
 @dataclass(slots=True)
 class ModelResponse:
-    content: str
+    content: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
 
     done_reason: str | None = None
