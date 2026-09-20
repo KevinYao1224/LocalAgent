@@ -81,7 +81,9 @@ def experiment_unknown_tool_recovery() -> None:
 
     assert result.completed
     assert not result.tool_results[0].success
-    assert result.messages[-2].content.startswith("Error:")
+    assert result.messages[-2].content.startswith(
+        "Error [tool_not_found]:"
+    )
     print_trace("unknown tool becomes an observation", result)
 
 

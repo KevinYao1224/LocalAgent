@@ -11,7 +11,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from llm.base import ToolCall
-from runtime.executor import ToolExecutor, ToolResult
+from runtime import ToolErrorType, ToolExecutor, ToolResult
 from tools.base import Tool
 from tools.calculator import multiply_tool
 from tools.registry import ToolRegistry
@@ -66,7 +66,9 @@ def main() -> None:
         arguments={},
     ))
     assert not unknown.success
+    assert unknown.error is not None
     assert "not registered" in unknown.error
+    assert unknown.error_type is ToolErrorType.TOOL_NOT_FOUND
     show("unknown tool", unknown)
 
     invalid_arguments = executor.execute(ToolCall(
@@ -74,7 +76,9 @@ def main() -> None:
         arguments={"a": 23},
     ))
     assert not invalid_arguments.success
+    assert invalid_arguments.error is not None
     assert "Invalid arguments" in invalid_arguments.error
+    assert invalid_arguments.error_type is ToolErrorType.VALIDATION_ERROR
     show("invalid arguments", invalid_arguments)
 
     handler_failure = executor.execute(ToolCall(
@@ -82,7 +86,9 @@ def main() -> None:
         arguments={},
     ))
     assert not handler_failure.success
+    assert handler_failure.error is not None
     assert "deliberate handler failure" in handler_failure.error
+    assert handler_failure.error_type is ToolErrorType.EXECUTION_ERROR
     show("handler failure", handler_failure)
 
     print("\nAll ToolExecutor experiments passed.")
