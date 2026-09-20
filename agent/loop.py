@@ -68,7 +68,10 @@ class AgentLoop:
                 tool_calls=response.tool_calls,
             ))
 
-            if not response.tool_calls:
+            if (
+                not response.tool_calls
+                and response.content.strip()
+            ):
                 return AgentRunResult(
                     response=response,
                     messages=history,
@@ -76,6 +79,9 @@ class AgentLoop:
                     stop_reason=StopReason.COMPLETED,
                     tool_results=tool_results,
                 )
+
+            if not response.tool_calls:
+                continue
 
             for call in response.tool_calls:
                 tool_result = self._executor.execute(call)
