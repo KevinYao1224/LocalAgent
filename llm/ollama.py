@@ -2,11 +2,22 @@ from typing import Any
 
 import httpx
 
-from llm.base import LLM, Message, ModelResponse, ToolCall
+from llm.base import (
+    LLM,
+    LLMCapabilities,
+    Message,
+    ModelResponse,
+    ReasoningReplaySupport,
+    ToolCall,
+)
 from tools.base import Tool
 
 
 class OllamaClient(LLM):
+    _CAPABILITIES = LLMCapabilities(
+        reasoning_replay=ReasoningReplaySupport.SUPPORTED,
+    )
+
     def __init__(
         self,
         model: str,
@@ -19,6 +30,18 @@ class OllamaClient(LLM):
             base_url=base_url,
             timeout=timeout
         )
+
+    @property
+    def provider_name(self) -> str:
+        return "ollama"
+
+    @property
+    def model_name(self) -> str:
+        return self.model
+
+    @property
+    def capabilities(self) -> LLMCapabilities:
+        return self._CAPABILITIES
     
     def _convert_tool(self, tool: Tool) -> dict[str, Any]:
         return {
@@ -38,6 +61,9 @@ class OllamaClient(LLM):
 
         if message.tool_name is not None:
             data["tool_name"] = message.tool_name
+
+        if message.thinking:
+            data["thinking"] = message.thinking
         
         if message.tool_calls:
             data["tool_calls"] = [

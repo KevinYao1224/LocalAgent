@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from llm.base import Message, ModelResponse, ToolCall
+from llm.base import Message, ModelResponse, ReasoningBlock, ToolCall
 from runtime.result import ToolResult
 
 
@@ -26,6 +26,7 @@ class AgentStep:
 
     step: int
     model_response: ModelResponse
+    reasoning: ReasoningBlock | None = None
     tool_executions: list[ToolExecution] = field(default_factory=list)
 
     @property
@@ -120,7 +121,11 @@ class AgentState:
         self.step += 1
         return self.step
 
-    def record_model_response(self, response: ModelResponse) -> AgentStep:
+    def record_model_response(
+        self,
+        response: ModelResponse,
+        reasoning: ReasoningBlock | None = None,
+    ) -> AgentStep:
         """Record the model response for the current step."""
 
         if self.step < 1:
@@ -133,6 +138,7 @@ class AgentState:
         agent_step = AgentStep(
             step=self.step,
             model_response=response,
+            reasoning=reasoning,
         )
         self.trajectory.append(agent_step)
         return agent_step

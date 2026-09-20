@@ -283,7 +283,6 @@ Phase 6B 将在当前事实模型上设计：
 
 ```text
 ReasoningBlock
-DecisionMemo
 provider reasoning replay capability
 ```
 

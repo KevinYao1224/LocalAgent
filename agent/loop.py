@@ -144,7 +144,10 @@ class AgentLoop:
                 ))
                 raise
             last_response = response
-            state.record_model_response(response)
+            state.record_model_response(
+                response=response,
+                reasoning=self._llm.create_reasoning_block(response),
+            )
             self._logger.log(ModelResponseReceived(
                 step=step,
                 response=response,
