@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from tools.base import Tool
+
 
 Role = Literal["system", "user", "assistant", "tool"]
 
@@ -39,6 +41,6 @@ class LLM(ABC):
     def chat(
         self,
         messages: list[Message],
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[Tool] | None = None,
     ) -> ModelResponse:
         pass

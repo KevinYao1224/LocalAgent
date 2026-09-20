@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agent.loop import AgentLoop
 from llm.base import LLM, Message, ModelResponse, ToolCall
+from runtime.executor import ToolExecutor
 from tools.calculator import multiply_tool
 from tools.registry import ToolRegistry
 
@@ -31,10 +32,10 @@ class ScriptedLLM(LLM):
         return next(self._responses)
 
 
-def create_registry() -> ToolRegistry:
+def create_executor() -> ToolExecutor:
     registry = ToolRegistry()
     registry.register(multiply_tool)
-    return registry
+    return ToolExecutor(registry)
 
 
 def print_trace(title: str, result) -> None:
@@ -56,11 +57,13 @@ def experiment_successful_tool_call() -> None:
         ]),
         ModelResponse(content="23 multiplied by 47 is 1081."),
     ])
-    result = AgentLoop(llm, create_registry()).run([
+    result = AgentLoop(llm, create_executor()).run([
         Message(role="user", content="What is 23 multiplied by 47?"),
     ])
 
     assert result.completed
+    assert result.tool_results[0].success
+    assert result.tool_results[0].value == 1081
     assert result.messages[-2].content == "1081"
     print_trace("successful tool call", result)
 
@@ -72,11 +75,12 @@ def experiment_unknown_tool_recovery() -> None:
         ]),
         ModelResponse(content="I could not use the requested tool."),
     ])
-    result = AgentLoop(llm, create_registry()).run([
+    result = AgentLoop(llm, create_executor()).run([
         Message(role="user", content="Call a tool that is unavailable."),
     ])
 
     assert result.completed
+    assert not result.tool_results[0].success
     assert result.messages[-2].content.startswith("Error:")
     print_trace("unknown tool becomes an observation", result)
 
@@ -88,11 +92,12 @@ def experiment_invalid_arguments_recovery() -> None:
         ]),
         ModelResponse(content="The tool call was missing an argument."),
     ])
-    result = AgentLoop(llm, create_registry()).run([
+    result = AgentLoop(llm, create_executor()).run([
         Message(role="user", content="Multiply 23 by an unspecified value."),
     ])
 
     assert result.completed
+    assert not result.tool_results[0].success
     assert "Invalid arguments" in result.messages[-2].content
     print_trace("tool error becomes an observation", result)
 
@@ -104,7 +109,7 @@ def experiment_step_limit() -> None:
     llm = ScriptedLLM([repeated_call, repeated_call])
     result = AgentLoop(
         llm,
-        create_registry(),
+        create_executor(),
         max_steps=2,
     ).run([
         Message(role="user", content="Keep calling multiply forever."),

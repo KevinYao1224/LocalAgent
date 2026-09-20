@@ -1,6 +1,7 @@
 from agent.loop import AgentLoop, StopReason
 from llm.base import Message
 from llm.ollama import OllamaClient
+from runtime.executor import ToolExecutor
 
 from tools.calculator import multiply_tool
 from tools.registry import ToolRegistry
@@ -15,6 +16,7 @@ def main():
     registry.register(
         multiply_tool
     )
+    executor = ToolExecutor(registry)
 
     messages = [
         Message(
@@ -38,7 +40,7 @@ def main():
     ) as llm:
         agent = AgentLoop(
             llm=llm,
-            registry=registry,
+            executor=executor,
             max_steps=5,
         )
         result = agent.run(messages)

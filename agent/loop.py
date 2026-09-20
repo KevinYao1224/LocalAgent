@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 
 from llm.base import LLM, Message, ModelResponse
-from tools.base import ToolExecutionError
-from tools.registry import ToolNotFoundError, ToolRegistry
+from runtime.executor import ToolExecutor
+from runtime.result import ToolResult
 
 
 class StopReason(str, Enum):
@@ -21,6 +21,7 @@ class AgentRunResult:
     messages: list[Message]
     steps: int
     stop_reason: StopReason
+    tool_results: list[ToolResult]
 
     @property
     def completed(self) -> bool:
@@ -33,14 +34,14 @@ class AgentLoop:
     def __init__(
         self,
         llm: LLM,
-        registry: ToolRegistry,
+        executor: ToolExecutor,
         max_steps: int = 5,
     ) -> None:
         if max_steps < 1:
             raise ValueError("max_steps must be at least 1.")
 
         self._llm = llm
-        self._registry = registry
+        self._executor = executor
         self._max_steps = max_steps
 
     def run(self, messages: list[Message]) -> AgentRunResult:
@@ -51,12 +52,13 @@ class AgentLoop:
         """
 
         history = list(messages)
+        tool_results: list[ToolResult] = []
         last_response: ModelResponse | None = None
 
         for step in range(1, self._max_steps + 1):
             response = self._llm.chat(
                 messages=history,
-                tools=self._registry.all(),
+                tools=self._executor.available_tools(),
             )
             last_response = response
 
@@ -72,17 +74,16 @@ class AgentLoop:
                     messages=history,
                     steps=step,
                     stop_reason=StopReason.COMPLETED,
+                    tool_results=tool_results,
                 )
 
             for call in response.tool_calls:
-                tool_output = self._execute_tool(
-                    name=call.name,
-                    arguments=call.arguments,
-                )
+                tool_result = self._executor.execute(call)
+                tool_results.append(tool_result)
                 history.append(Message(
                     role="tool",
                     tool_name=call.name,
-                    content=tool_output,
+                    content=tool_result.to_message_content(),
                 ))
 
         # max_steps is always at least one, so the loop always sets this value.
@@ -92,18 +93,5 @@ class AgentLoop:
             messages=history,
             steps=self._max_steps,
             stop_reason=StopReason.MAX_STEPS,
+            tool_results=tool_results,
         )
-
-    def _execute_tool(
-        self,
-        name: str,
-        arguments: dict,
-    ) -> str:
-        """Turn expected tool failures into observations for the model."""
-
-        try:
-            result = self._registry.execute(name, arguments)
-        except (ToolNotFoundError, ToolExecutionError) as exc:
-            return f"Error: {exc}"
-
-        return str(result)
