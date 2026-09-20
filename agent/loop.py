@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from agent.conversation import ConversationProjector
+from agent.state import AgentState, AgentStep, TrajectoryEntry
 from llm.base import LLM, Message, ModelResponse
 from observability.events import (
     AgentFinished,
@@ -30,14 +32,42 @@ class AgentRunResult:
     """The final state of one AgentLoop run."""
 
     response: ModelResponse
-    messages: list[Message]
-    steps: int
+    state: AgentState
     stop_reason: StopReason
-    tool_results: list[ToolResult]
 
     @property
     def completed(self) -> bool:
         return self.stop_reason is StopReason.COMPLETED
+
+    @property
+    def messages(self) -> list[Message]:
+        """Formal conversation history kept for backward compatibility."""
+
+        return ConversationProjector().project(self.state.trajectory)
+
+    @property
+    def steps(self) -> int:
+        """Number of model-call attempts made during the run."""
+
+        return self.state.step
+
+    @property
+    def tool_results(self) -> list[ToolResult]:
+        """All tool results in execution order."""
+
+        return self.state.tool_results
+
+    @property
+    def trajectory(self) -> list[TrajectoryEntry]:
+        """External inputs and every model step in chronological order."""
+
+        return self.state.trajectory
+
+    @property
+    def agent_steps(self) -> list[AgentStep]:
+        """Every recorded model response without input-message entries."""
+
+        return self.state.steps
 
 
 class AgentLoop:
@@ -57,6 +87,14 @@ class AgentLoop:
         self._executor = executor
         self._max_steps = max_steps
         self._logger = logger if logger is not None else NullLogger()
+        self._conversation_projector = ConversationProjector()
+        self._last_state: AgentState | None = None
+
+    @property
+    def last_state(self) -> AgentState | None:
+        """Most recent run state, including state left by a failed run."""
+
+        return self._last_state
 
     def run(self, messages: list[Message]) -> AgentRunResult:
         """Run until the model answers normally or the step limit is reached.
@@ -65,25 +103,32 @@ class AgentLoop:
         while the returned result contains the complete conversation trace.
         """
 
-        history = list(messages)
-        tool_results: list[ToolResult] = []
+        state = AgentState.from_messages(
+            messages=messages,
+            max_steps=self._max_steps,
+        )
+        self._last_state = state
         last_response: ModelResponse | None = None
 
         self._logger.log(AgentStarted(
-            max_steps=self._max_steps,
-            initial_messages=tuple(history),
+            max_steps=state.max_steps,
+            initial_messages=tuple(messages),
         ))
 
-        for step in range(1, self._max_steps + 1):
+        while state.step < state.max_steps:
+            step = state.begin_step()
             available_tools = self._executor.available_tools()
+            conversation = self._conversation_projector.project(
+                state.trajectory
+            )
             self._logger.log(ModelCallStarted(
                 step=step,
-                message_count=len(history),
+                message_count=len(conversation),
                 tool_names=tuple(tool.name for tool in available_tools),
             ))
             try:
                 response = self._llm.chat(
-                    messages=history,
+                    messages=conversation,
                     tools=available_tools,
                 )
             except Exception as exc:
@@ -99,17 +144,11 @@ class AgentLoop:
                 ))
                 raise
             last_response = response
+            state.record_model_response(response)
             self._logger.log(ModelResponseReceived(
                 step=step,
                 response=response,
             ))
-
-            if response.tool_calls or response.content.strip():
-                history.append(Message(
-                    role="assistant",
-                    content=response.content,
-                    tool_calls=response.tool_calls,
-                ))
 
             if (
                 not response.tool_calls
@@ -117,10 +156,8 @@ class AgentLoop:
             ):
                 result = AgentRunResult(
                     response=response,
-                    messages=history,
-                    steps=step,
+                    state=state,
                     stop_reason=StopReason.COMPLETED,
-                    tool_results=tool_results,
                 )
                 self._log_finished(result)
                 return result
@@ -154,21 +191,14 @@ class AgentLoop:
                     call=call,
                     result=tool_result,
                 ))
-                tool_results.append(tool_result)
-                history.append(Message(
-                    role="tool",
-                    tool_name=call.name,
-                    content=tool_result.to_message_content(),
-                ))
+                state.record_tool_execution(call, tool_result)
 
         # max_steps is always at least one, so the loop always sets this value.
         assert last_response is not None
         result = AgentRunResult(
             response=last_response,
-            messages=history,
-            steps=self._max_steps,
+            state=state,
             stop_reason=StopReason.MAX_STEPS,
-            tool_results=tool_results,
         )
         self._log_finished(result)
         return result
