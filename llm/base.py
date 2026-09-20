@@ -28,6 +28,7 @@ class Message:
 class ModelResponse:
     content: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
+    thinking: str = ""
 
     done_reason: str | None = None
 

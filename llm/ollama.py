@@ -97,6 +97,7 @@ class OllamaClient(LLM):
 
         return ModelResponse(
             content=message.get("content", ""),
+            thinking=message.get("thinking") or "",
             tool_calls=tool_calls,
             done_reason=data.get("done_reason"),
             prompt_tokens=data.get("prompt_eval_count"),

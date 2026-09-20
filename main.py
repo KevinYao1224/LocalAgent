@@ -1,6 +1,7 @@
-from agent.loop import AgentLoop, StopReason
+from agent.loop import AgentLoop
 from llm.base import Message
 from llm.ollama import OllamaClient
+from observability import HumanReadableLogger
 from runtime.executor import ToolExecutor
 
 from tools.calculator import calculator_tools
@@ -45,22 +46,9 @@ def main():
             llm=llm,
             executor=executor,
             max_steps=6,
+            logger=HumanReadableLogger(),
         )
-        result = agent.run(messages)
-
-        for index, tool_result in enumerate(
-            result.tool_results,
-            start=1,
-        ):
-            print(
-                f"Tool {index}: {tool_result.tool_name} -> "
-                f"{tool_result.to_message_content()}"
-            )
-
-        if result.stop_reason is StopReason.MAX_STEPS:
-            print(f"Agent stopped after {result.steps} steps.")
-        else:
-            print("Final answer:", result.response.content)
+        agent.run(messages)
 
 
 if __name__ == "__main__":
