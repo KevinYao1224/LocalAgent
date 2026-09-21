@@ -7,35 +7,42 @@ class ConversationProjector:
 
     Projection is intentionally policy-free. It does not replay thinking,
     truncate history, summarize content, or add memory. Those choices belong
-    to the future ContextBuilder.
+    to ContextBuilder and later context policies.
     """
 
     def project(self, trajectory: list[TrajectoryEntry]) -> list[Message]:
         messages: list[Message] = []
 
         for entry in trajectory:
-            if isinstance(entry, InputMessage):
-                messages.append(entry.message)
-                continue
+            messages.extend(self.project_entry(entry))
 
-            if not isinstance(entry, AgentStep):
-                raise TypeError(
-                    f"Unsupported trajectory entry: {type(entry).__name__}"
-                )
+        return messages
 
-            response = entry.model_response
-            if response.tool_calls or response.content.strip():
-                messages.append(Message(
-                    role="assistant",
-                    content=response.content,
-                    tool_calls=response.tool_calls,
-                ))
+    def project_entry(self, entry: TrajectoryEntry) -> list[Message]:
+        """Project one fact without applying context-selection policy."""
 
-            for execution in entry.tool_executions:
-                messages.append(Message(
-                    role="tool",
-                    tool_name=execution.call.name,
-                    content=execution.result.to_message_content(),
-                ))
+        if isinstance(entry, InputMessage):
+            return [entry.message]
+
+        if not isinstance(entry, AgentStep):
+            raise TypeError(
+                f"Unsupported trajectory entry: {type(entry).__name__}"
+            )
+
+        messages: list[Message] = []
+        response = entry.model_response
+        if response.tool_calls or response.content.strip():
+            messages.append(Message(
+                role="assistant",
+                content=response.content,
+                tool_calls=response.tool_calls,
+            ))
+
+        for execution in entry.tool_executions:
+            messages.append(Message(
+                role="tool",
+                tool_name=execution.call.name,
+                content=execution.result.to_message_content(),
+            ))
 
         return messages

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from agent.context import ContextBuilder
 from agent.conversation import ConversationProjector
 from agent.state import AgentState, AgentStep, TrajectoryEntry
 from llm.base import LLM, Message, ModelResponse
@@ -79,6 +80,7 @@ class AgentLoop:
         executor: ToolExecutor,
         max_steps: int = 5,
         logger: AgentLogger | None = None,
+        context_builder: ContextBuilder | None = None,
     ) -> None:
         if max_steps < 1:
             raise ValueError("max_steps must be at least 1.")
@@ -87,7 +89,11 @@ class AgentLoop:
         self._executor = executor
         self._max_steps = max_steps
         self._logger = logger if logger is not None else NullLogger()
-        self._conversation_projector = ConversationProjector()
+        self._context_builder = (
+            context_builder
+            if context_builder is not None
+            else ContextBuilder()
+        )
         self._last_state: AgentState | None = None
 
     @property
@@ -118,17 +124,15 @@ class AgentLoop:
         while state.step < state.max_steps:
             step = state.begin_step()
             available_tools = self._executor.available_tools()
-            conversation = self._conversation_projector.project(
-                state.trajectory
-            )
+            context = self._context_builder.build(state, self._llm)
             self._logger.log(ModelCallStarted(
                 step=step,
-                message_count=len(conversation),
+                message_count=len(context.messages),
                 tool_names=tuple(tool.name for tool in available_tools),
             ))
             try:
                 response = self._llm.chat(
-                    messages=conversation,
+                    messages=context.messages,
                     tools=available_tools,
                 )
             except Exception as exc:

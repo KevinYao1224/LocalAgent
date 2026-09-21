@@ -1,5 +1,10 @@
 """Agent orchestration components."""
 
+from agent.context import (
+    ContextBuilder,
+    ContextBuildResult,
+    ReasoningReplayPolicy,
+)
 from agent.conversation import ConversationProjector
 from agent.loop import AgentLoop, AgentRunResult, StopReason
 from agent.state import (
@@ -15,8 +20,11 @@ __all__ = [
     "AgentRunResult",
     "AgentState",
     "AgentStep",
+    "ContextBuilder",
+    "ContextBuildResult",
     "ConversationProjector",
     "InputMessage",
+    "ReasoningReplayPolicy",
     "StopReason",
     "ToolExecution",
     "TrajectoryEntry",
