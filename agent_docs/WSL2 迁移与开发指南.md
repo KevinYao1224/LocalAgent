@@ -279,9 +279,18 @@ curl http://localhost:11434/api/tags
 不要为了临时连通而把 Ollama 无认证地暴露到局域网。若必须修改监听地址，应只
 开放必要范围并同步检查防火墙。
 
-迁移时的实测结果为 `localhost:11434` 不可达。因此全部离线实验已经验证，真实
-Ollama 实验尚未在 WSL 中重跑。恢复连接后应先执行 `/api/tags` 检查，再运行
-`main.py` 或 Phase 7B 的真实模型实验。
+迁移初期的 NAT 网络模式下，实测 `localhost:11434` 不可达；Windows Ollama
+当时只监听 `127.0.0.1:11434`。2026-09-22 已将 WSL 网络切换为 Mirror 模式，
+现在 WSL 中的以下检查已经成功：
+
+```bash
+curl --noproxy '*' http://127.0.0.1:11434/api/version
+curl --noproxy '*' http://127.0.0.1:11434/api/tags
+```
+
+并已在 Linux `.venv` 中重新运行 `main.py` 和
+`experiments/reasoning_replay_ab_experiment.py --runs 3`。详细结果见：
+[Ollama WSL Mirror 集成测试记录](./2026-09-22%20Ollama%20WSL%20Mirror%20集成测试记录.md)。
 
 ## 9. 日常开发流程
 
@@ -324,7 +333,7 @@ WSL 原生 OpenCode        已安装；/home/kyee/.opencode/bin/opencode
 旧 OpenCode 数据         Linux/Windows 配置、缓存、状态、日志和项目快照已清理
 仓库权限                 目录 755、普通文件 644，Git core.filemode=true
 文本换行                 已统一为 LF，并加入 .gitattributes
-Ollama localhost:11434   当前不可达
+Ollama localhost:11434   Mirror 模式下可达（2026-09-22 已验证）
 ```
 
 以下检查在 WSL 中全部通过：
