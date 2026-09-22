@@ -7,6 +7,7 @@ from agent.context import (
 )
 from agent.conversation import ConversationProjector
 from agent.loop import AgentLoop, AgentRunResult, StopReason
+from agent.session import AgentSession
 from agent.state import (
     AgentState,
     AgentStep,
@@ -18,6 +19,7 @@ from agent.state import (
 __all__ = [
     "AgentLoop",
     "AgentRunResult",
+    "AgentSession",
     "AgentState",
     "AgentStep",
     "ContextBuilder",

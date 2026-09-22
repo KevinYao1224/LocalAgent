@@ -1,0 +1,6 @@
+# Keep text files stable when the repository is used from Windows and WSL.
+*.py   text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
