@@ -9,6 +9,7 @@ class ToolErrorType(str, Enum):
     """Categories of expected tool-call failures."""
 
     TOOL_NOT_FOUND = "tool_not_found"
+    TOOL_NOT_AVAILABLE = "tool_not_available"
     VALIDATION_ERROR = "validation_error"
     EXECUTION_ERROR = "execution_error"
 

@@ -33,6 +33,13 @@ failing_tool = Tool(
 )
 
 
+class FilteredExecutor(ToolExecutor):
+    """Simulate a future permission layer that filters advertised tools."""
+
+    def available_tools(self):
+        return []
+
+
 def create_executor() -> ToolExecutor:
     registry = ToolRegistry()
     registry.register(multiply_tool)
@@ -90,6 +97,56 @@ def main() -> None:
     assert "deliberate handler failure" in handler_failure.error
     assert handler_failure.error_type is ToolErrorType.EXECUTION_ERROR
     show("handler failure", handler_failure)
+
+    restricted_registry = ToolRegistry()
+    restricted_registry.register(multiply_tool)
+    restricted = ToolExecutor(
+        restricted_registry,
+        enabled_tool_names=(),
+    )
+    assert restricted.available_tools() == []
+    unavailable = restricted.execute(ToolCall(
+        name="multiply",
+        arguments={"a": 23, "b": 47},
+    ))
+    assert not unavailable.success
+    assert unavailable.error_type is ToolErrorType.TOOL_NOT_AVAILABLE
+    assert "not available" in unavailable.error
+    show("registered but unavailable", unavailable)
+
+    restricted.enable_tool("multiply")
+    assert [tool.name for tool in restricted.available_tools()] == [
+        "multiply"
+    ]
+    assert restricted.execute(ToolCall(
+        name="multiply",
+        arguments={"a": 2, "b": 3},
+    )).value == 6
+    restricted.disable_tool("multiply")
+    assert restricted.available_tools() == []
+
+    try:
+        restricted.set_enabled_tools(["missing_tool"])
+    except ValueError as exc:
+        assert "not registered" in str(exc)
+    else:
+        raise AssertionError("An unregistered enabled tool was accepted.")
+
+    try:
+        restricted.set_enabled_tools("multiply")
+    except ValueError as exc:
+        assert "iterable of names" in str(exc)
+    else:
+        raise AssertionError("A single string was accepted as a name iterable.")
+
+    filtered_registry = ToolRegistry()
+    filtered_registry.register(multiply_tool)
+    filtered = FilteredExecutor(filtered_registry)
+    filtered_result = filtered.execute(ToolCall(
+        name="multiply",
+        arguments={"a": 2, "b": 4},
+    ))
+    assert filtered_result.error_type is ToolErrorType.TOOL_NOT_AVAILABLE
 
     print("\nAll ToolExecutor experiments passed.")
 

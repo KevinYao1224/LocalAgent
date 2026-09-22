@@ -166,9 +166,53 @@ def experiment_tool_runtime_failure_trace() -> str:
     return output
 
 
+def experiment_text_preview_limit() -> str:
+    long_text = "abcdefghijklmnopqrstuvwxyz"
+    long_tool = Tool(
+        name="long_tool",
+        description="Return a long value for logger preview testing.",
+        parameters={
+            "type": "object",
+            "properties": {},
+            "additionalProperties": False,
+        },
+        handler=lambda: long_text,
+    )
+    registry = ToolRegistry()
+    registry.register(long_tool)
+    stream = StringIO()
+    llm = ScriptedLLM([
+        ModelResponse(tool_calls=[ToolCall(name="long_tool", arguments={})]),
+        ModelResponse(content=long_text, thinking=long_text),
+    ])
+
+    AgentLoop(
+        llm=llm,
+        executor=ToolExecutor(registry),
+        logger=HumanReadableLogger(stream=stream, max_text_chars=10),
+    ).run([
+        Message(role="user", content=long_text),
+    ])
+
+    output = stream.getvalue()
+    assert "abcdefghij... <16 chars omitted>" in output
+    assert long_text not in output
+
+    for invalid_limit in (0, -1, True, 1.5, "10"):
+        try:
+            HumanReadableLogger(max_text_chars=invalid_limit)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Invalid logger preview limit accepted.")
+
+    return output
+
+
 if __name__ == "__main__":
     print(experiment_successful_trace())
     print(experiment_error_trace())
     print(experiment_model_failure_trace())
     print(experiment_tool_runtime_failure_trace())
+    print(experiment_text_preview_limit())
     print("All logging experiments passed.")

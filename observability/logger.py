@@ -34,8 +34,21 @@ class NullLogger:
 class HumanReadableLogger:
     """Write an AgentLoop trace intended for local terminal experiments."""
 
-    def __init__(self, stream: TextIO | None = None) -> None:
+    def __init__(
+        self,
+        stream: TextIO | None = None,
+        max_text_chars: int | None = None,
+    ) -> None:
+        if max_text_chars is not None and (
+            isinstance(max_text_chars, bool)
+            or not isinstance(max_text_chars, int)
+            or max_text_chars < 1
+        ):
+            raise ValueError(
+                "max_text_chars must be a positive integer or None."
+            )
         self._stream = stream if stream is not None else sys.stdout
+        self._max_text_chars = max_text_chars
 
     def log(self, event: AgentEvent) -> None:
         if isinstance(event, AgentStarted):
@@ -74,7 +87,9 @@ class HumanReadableLogger:
         self._write(f"Initial messages: {len(event.initial_messages)}")
 
         for message in event.initial_messages:
-            self._write(f"  [{message.role}] {message.content}")
+            self._write(
+                f"  [{message.role}] {self._preview(message.content)}"
+            )
 
     def _log_model_call_started(self, event: ModelCallStarted) -> None:
         self._write(f"\n--- Step {event.step}: model call ---")
@@ -127,7 +142,7 @@ class HumanReadableLogger:
         if result.success:
             self._write(
                 f"Tool result: {result.tool_name} -> "
-                f"{result.to_message_content()}"
+                f"{self._preview(result.to_message_content())}"
             )
             return
 
@@ -143,14 +158,15 @@ class HumanReadableLogger:
         self._write(f"Steps: {event.steps}")
         final_content = event.final_content.strip()
         self._write(
-            f"Final content: {final_content if final_content else '<empty>'}"
+            "Final content: "
+            f"{self._preview(final_content) if final_content else '<empty>'}"
         )
 
     def _write(self, text: str) -> None:
         self._stream.write(f"{text}\n")
 
     def _write_text(self, label: str, text: str) -> None:
-        value = text.strip()
+        value = self._preview(text.strip())
 
         if not value:
             self._write(f"{label}: <empty>")
@@ -163,3 +179,12 @@ class HumanReadableLogger:
         self._write(f"{label}:")
         for line in value.splitlines():
             self._write(f"  {line}")
+
+    def _preview(self, text: str) -> str:
+        """Limit terminal output without changing the underlying event."""
+
+        if self._max_text_chars is None or len(text) <= self._max_text_chars:
+            return text
+
+        omitted = len(text) - self._max_text_chars
+        return f"{text[:self._max_text_chars]}... <{omitted} chars omitted>"
