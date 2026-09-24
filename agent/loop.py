@@ -27,7 +27,7 @@ from runtime.result import ToolResult
 
 
 class StopReason(str, Enum):
-    """Why an agent run stopped."""
+    """说明一次 Agent 运行停止的原因。"""
 
     COMPLETED = "completed"
     MAX_STEPS = "max_steps"
@@ -35,7 +35,7 @@ class StopReason(str, Enum):
 
 @dataclass(slots=True)
 class AgentRunResult:
-    """The final state of one AgentLoop run."""
+    """保存一次 AgentLoop 运行结束时的状态和结果。"""
 
     response: ModelResponse
     state: AgentState
@@ -48,43 +48,43 @@ class AgentRunResult:
 
     @property
     def run_id(self) -> str:
-        """Correlation ID shared by this run's state and events."""
+        """本次运行的关联 ID；状态和事件共用此 ID。"""
 
         return self.state.run_id
 
     @property
     def messages(self) -> list[Message]:
-        """Formal conversation history kept for backward compatibility."""
+        """返回正式对话历史；保留此属性以兼容旧调用方。"""
 
         return ConversationProjector().project(self.state.trajectory)
 
     @property
     def steps(self) -> int:
-        """Number of model-call attempts made during the run."""
+        """返回本次运行尝试调用模型的次数。"""
 
         return self.state.step
 
     @property
     def tool_results(self) -> list[ToolResult]:
-        """All tool results in execution order."""
+        """按执行顺序返回本次运行产生的所有工具结果。"""
 
         return self.state.tool_results
 
     @property
     def trajectory(self) -> list[TrajectoryEntry]:
-        """External inputs and every model step in chronological order."""
+        """按时间顺序返回外部输入和所有模型步骤。"""
 
         return self.state.trajectory
 
     @property
     def agent_steps(self) -> list[AgentStep]:
-        """Every recorded model response without input-message entries."""
+        """返回记录过的所有模型响应步骤，不包含输入消息条目。"""
 
         return self.state.steps
 
 
 class AgentLoop:
-    """Repeatedly ask the model what to do and execute requested tools."""
+    """循环询问模型下一步行动，并执行模型请求的工具。"""
 
     def __init__(
         self,
@@ -110,15 +110,14 @@ class AgentLoop:
 
     @property
     def last_state(self) -> AgentState | None:
-        """Most recent run state, including state left by a failed run."""
+        """返回最近一次运行的状态；运行失败时也保留当时的状态。"""
 
         return self._last_state
 
     def run(self, messages: list[Message]) -> AgentRunResult:
-        """Run until the model answers normally or the step limit is reached.
+        """运行至模型给出正常回答或达到步骤上限。
 
-        The input list is copied. This lets callers reuse their original prompt,
-        while the returned result contains the complete conversation trace.
+        输入列表会被复制，因此调用方可以继续复用原始提示；返回结果包含完整运行轨迹。
         """
 
         state = AgentState.from_messages(
@@ -255,7 +254,7 @@ class AgentLoop:
                 ), step=step, duration_ms=tool_duration_ms)
                 state.record_tool_execution(call, tool_result)
 
-        # max_steps is always at least one, so the loop always sets this value.
+        # max_steps 至少为 1，因此循环必定会为该变量赋值。
         assert last_response is not None
         result = AgentRunResult(
             response=last_response,
@@ -268,7 +267,7 @@ class AgentLoop:
 
     @staticmethod
     def _elapsed_ms(start: float) -> float:
-        """Durations use a monotonic clock, never wall-clock subtraction."""
+        """使用单调时钟计算耗时，不通过墙上时钟相减。"""
 
         return (perf_counter() - start) * 1000
 

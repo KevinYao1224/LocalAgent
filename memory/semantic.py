@@ -1,4 +1,4 @@
-"""Small-scale semantic memory: explicit embeddings, SQLite storage, cosine top-k."""
+"""小规模语义记忆：显式生成 embedding、存入 SQLite，并按 cosine 取 top-k。"""
 
 import json
 import math
@@ -14,7 +14,7 @@ from memory.long_term import MemoryRecord, SQLiteLongTermMemory
 
 
 class TextEmbedder(Protocol):
-    """An embedding model with a stable identity for persisted vectors."""
+    """生成 embedding 且具有稳定模型标识的接口，供持久化向量使用。"""
 
     @property
     def model_id(self) -> str: ...
@@ -29,7 +29,7 @@ class ScoredMemory:
 
 
 def _unit_vector(values: Sequence[float]) -> list[float]:
-    """Reject invalid vectors before storing or comparing them."""
+    """在存储或比较前拒绝无效向量，并将合法向量归一化。"""
 
     if not isinstance(values, (list, tuple)) or not values:
         raise ValueError("embedding must be a nonempty list or tuple")
@@ -43,10 +43,9 @@ def _unit_vector(values: Sequence[float]) -> list[float]:
 
 
 class SQLiteSemanticMemory(SQLiteLongTermMemory):
-    """Persist vectors alongside text; scan one namespace/model for cosine ranking.
+    """将向量与文本一起持久化，并在单一 namespace/model 范围内扫描排序。
 
-    The embedder identity must identify the model and its version. Changing its
-    weights under the same identity makes old vectors incomparable to new ones.
+    embedder 标识必须能区分模型及其版本。如果权重变化但标识不变，新旧向量就不可比较。
     """
 
     def __init__(self, path: str | Path, namespace: str, embedder: TextEmbedder) -> None:

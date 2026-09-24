@@ -1,10 +1,10 @@
-"""Deterministic experiments for Phase 6C ContextBuilder policies.
+"""用于验证 Phase 6C ContextBuilder 策略的确定性实验。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/context_builder_experiment.py
 
-No Ollama server is needed.
+无需 Ollama 服务。
 """
 
 from collections.abc import Iterable
@@ -33,7 +33,7 @@ from tools import ToolRegistry, add_tool
 
 
 class DeclaredLLM(LLM):
-    """An LLM identity used to test capability and provenance matching."""
+    """用于测试 capability 和来源匹配的 LLM 标识实现。"""
 
     def __init__(
         self,
@@ -67,7 +67,7 @@ class DeclaredLLM(LLM):
 
 
 class RecordingReplayLLM(DeclaredLLM):
-    """A replay-capable scripted LLM that records each received context."""
+    """支持 reasoning replay、并记录每次收到的上下文的脚本化 LLM。"""
 
     def __init__(self, responses: Iterable[ModelResponse]) -> None:
         super().__init__()

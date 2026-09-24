@@ -1,6 +1,6 @@
-"""Inspect run/step correlation and monotonic durations without Ollama.
+"""无需 Ollama，检查 run/step 关联关系和单调时钟耗时。
 
-Run: .venv/bin/python experiments/structured_trace_timing_experiment.py
+运行：.venv/bin/python experiments/structured_trace_timing_experiment.py
 """
 
 from datetime import timezone
@@ -50,7 +50,7 @@ class ScriptedLLM(LLM):
         self.responses = iter(responses)
 
     def chat(self, messages, tools=None) -> ModelResponse:
-        sleep(0.01)  # Visible timing without relying on a remote model.
+        sleep(0.01)  # 不依赖远程模型，也能观察到耗时。
         response = next(self.responses)
         if isinstance(response, Exception):
             raise response
@@ -149,8 +149,8 @@ def failed_runs() -> None:
     print("=== model failure ===")
     print(f"run={state.run_id}, attempt={failure.step_id}, elapsed={failure.duration_ms:.2f} ms")
 
-    # ToolExecutor catches ordinary handler exceptions as ToolResult; a
-    # runtime-level exception is reproduced by a failing executor below.
+        # ToolExecutor 会将普通 handler 异常转换为 ToolResult；下面用失败的 executor
+        # 模拟 Runtime 层异常。
     class FailingExecutor:
         def available_tools(self):
             return []

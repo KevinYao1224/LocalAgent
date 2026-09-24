@@ -9,14 +9,14 @@ from runtime.result import ToolResult
 
 @dataclass(frozen=True, slots=True)
 class InputMessage:
-    """A conversation message supplied from outside the current agent run."""
+    """由当前 Agent 运行之外提供的对话消息。"""
 
     message: Message
 
 
 @dataclass(frozen=True, slots=True)
 class ToolExecution:
-    """A tool call and the structured result produced for that exact call."""
+    """一次工具调用，以及专属于该调用的结构化结果。"""
 
     call: ToolCall
     result: ToolResult
@@ -24,7 +24,7 @@ class ToolExecution:
 
 @dataclass(slots=True)
 class AgentStep:
-    """One model response and the tool executions caused by it."""
+    """一次模型响应，以及由该响应触发的工具执行。"""
 
     step: int
     model_response: ModelResponse
@@ -34,7 +34,7 @@ class AgentStep:
 
     @property
     def tool_results(self) -> list[ToolResult]:
-        """Return this step's results in execution order."""
+        """按执行顺序返回本步骤的工具结果。"""
 
         return [execution.result for execution in self.tool_executions]
 
@@ -44,10 +44,10 @@ TrajectoryEntry = InputMessage | AgentStep
 
 @dataclass(slots=True)
 class AgentState:
-    """Runtime control state and a chronological trajectory of run facts.
+    """保存运行时控制状态和按时间排列的运行事实轨迹。
 
-    AgentState deliberately does not build provider conversation messages.
-    That derived representation belongs to ConversationProjector.
+    AgentState 有意不构造 provider 对话消息；这种派生表示由
+    ConversationProjector 负责。
     """
 
     max_steps: int
@@ -66,7 +66,7 @@ class AgentState:
         max_steps: int,
         metadata: dict[str, Any] | None = None,
     ) -> "AgentState":
-        """Create run state and record each supplied conversation message."""
+        """创建本轮运行状态，并记录传入的每一条对话消息。"""
 
         state = cls(
             max_steps=max_steps,
@@ -78,7 +78,7 @@ class AgentState:
 
     @property
     def current_task(self) -> str:
-        """Return the latest externally supplied user message."""
+        """返回最近一条由外部提供的 user 消息。"""
 
         return next(
             (
@@ -94,7 +94,7 @@ class AgentState:
 
     @property
     def steps(self) -> list[AgentStep]:
-        """Return model-response steps in trajectory order."""
+        """按轨迹顺序返回模型响应步骤。"""
 
         return [
             entry
@@ -104,7 +104,7 @@ class AgentState:
 
     @property
     def tool_results(self) -> list[ToolResult]:
-        """Return all tool results in execution order."""
+        """按执行顺序返回所有工具结果。"""
 
         return [
             execution.result
@@ -113,14 +113,14 @@ class AgentState:
         ]
 
     def record_input(self, message: Message) -> InputMessage:
-        """Record a system, user, or pre-existing conversation message."""
+        """记录 system、user 或先前对话中的消息。"""
 
         entry = InputMessage(message=message)
         self.trajectory.append(entry)
         return entry
 
     def begin_step(self) -> int:
-        """Advance to the next model-call attempt and return its number."""
+        """开始下一次模型调用尝试，并返回步骤编号。"""
 
         if self.step >= self.max_steps:
             raise RuntimeError("Cannot begin a step beyond max_steps.")
@@ -129,7 +129,7 @@ class AgentState:
         return self.step
 
     def step_id(self, step: int) -> str:
-        """Stable identity for a model attempt, including failed attempts."""
+        """返回模型调用尝试的稳定标识，失败的尝试也有标识。"""
 
         if step < 1 or step > self.step:
             raise ValueError("Step must refer to a started model attempt.")
@@ -140,7 +140,7 @@ class AgentState:
         response: ModelResponse,
         reasoning: ReasoningBlock | None = None,
     ) -> AgentStep:
-        """Record the model response for the current step."""
+        """记录当前步骤的模型响应。"""
 
         if self.step < 1:
             raise RuntimeError("begin_step() must be called first.")
@@ -163,7 +163,7 @@ class AgentState:
         call: ToolCall,
         result: ToolResult,
     ) -> ToolExecution:
-        """Attach a tool call and its result to the current model step."""
+        """将工具调用及其结果关联到当前模型步骤。"""
 
         if not self.steps or self.steps[-1].step != self.step:
             raise RuntimeError(

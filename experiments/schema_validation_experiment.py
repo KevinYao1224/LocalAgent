@@ -1,6 +1,6 @@
-"""Experiments for JSON Schema validation of untrusted tool arguments.
+"""不可信工具参数的 JSON Schema 校验实验。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/schema_validation_experiment.py
 """

@@ -1,17 +1,17 @@
-"""Visually inspect Phase 7B memory scenarios with the standard agent stack.
+"""使用标准 Agent 组件观察 Phase 7B 的记忆场景。
 
-Run every scenario:
+运行全部场景：
 
     python main.py
 
-Run one scenario when you want a shorter trace:
+需要较短的运行轨迹时，可只运行一个场景：
 
     python main.py --scenario recall
     python main.py --scenario fact-update
     python main.py --scenario eviction
     python main.py --scenario long-tool
 
-Save a metadata-only trace alongside the readable output:
+如需在可读输出之外保存仅含元数据的 trace：
 
     python main.py --scenario recall --trace-jsonl /tmp/opencode/agent-trace.jsonl
 """
@@ -41,7 +41,7 @@ MEMORY_PREVIEW_CHARS = 100
 
 @dataclass(frozen=True, slots=True)
 class Scenario:
-    """One human-inspectable sequence of user turns."""
+    """一组便于人工检查的连续用户轮次。"""
 
     key: str
     title: str
@@ -53,7 +53,7 @@ class Scenario:
 
 
 def load_archive() -> str:
-    """Return a long tool observation with one marker near its middle."""
+    """返回一段较长的工具 observation，其中部包含一个标记。"""
 
     prefix = "archived telemetry without actionable facts " * 180
     suffix = "historical diagnostics without actionable facts " * 180
@@ -130,7 +130,7 @@ def create_session(
     trace_path: Path | None = None,
     trace_content: bool = False,
 ) -> AgentSession:
-    """Build the same public AgentSession stack an application would use."""
+    """构造与应用调用公开 AgentSession 接口时相同的组件链。"""
 
     registry = ToolRegistry()
     if scenario.include_archive_tool:
@@ -157,7 +157,7 @@ def create_session(
 
 
 def prompt_tokens(result: AgentRunResult) -> int:
-    """Sum provider-reported prompt tokens for one user turn."""
+    """汇总 provider 报告的本轮 prompt token 数。"""
 
     return sum(
         step.model_response.prompt_tokens or 0
@@ -166,7 +166,7 @@ def prompt_tokens(result: AgentRunResult) -> int:
 
 
 def preview(text: str, limit: int = MEMORY_PREVIEW_CHARS) -> str:
-    """Keep the explicit memory snapshot readable in a terminal."""
+    """压缩记忆快照的终端预览，便于阅读。"""
 
     compact = " ".join(text.split())
     if len(compact) <= limit:
@@ -175,7 +175,7 @@ def preview(text: str, limit: int = MEMORY_PREVIEW_CHARS) -> str:
 
 
 def print_memory(session: AgentSession) -> None:
-    """Show exactly which canonical messages survive after the turn."""
+    """展示本轮结束后实际保留的规范消息。"""
 
     messages = session.memory.retrieve()
     characters = sum(len(message.content) for message in messages)
@@ -201,7 +201,7 @@ def run_scenario(
     trace_path: Path | None = None,
     trace_content: bool = False,
 ) -> bool:
-    """Run one scenario and print traces, memory snapshots, and verdict."""
+    """运行一个场景，并打印轨迹、记忆快照和判定结果。"""
 
     print("\n" + "=" * 78)
     print(f"SCENARIO: {scenario.title} ({scenario.key})")

@@ -1,4 +1,4 @@
-"""Phase 8B Ollama experiment: bounded versus unbounded long-term retrieval.
+"""Phase 8B Ollama 实验：比较有预算和无预算的长期记忆检索。
 
     .venv/bin/python experiments/long_term_retrieval_budget_live_experiment.py
 """
@@ -97,7 +97,7 @@ def main():
                 assert selection.selected_count == len(ids)
                 if character_budget is not None:
                     assert selection.payload_characters <= character_budget
-                # Assert the actual canonical input, not just selection metadata.
+                # 检查实际的规范输入，而不只检查选择元数据。
                 input_text = "\n".join(m.content for m in result.messages if m.role == "user")
                 for record in (short, long):
                     assert (record.id in input_text) == (record.id in ids)

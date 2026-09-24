@@ -1,4 +1,4 @@
-"""Offline Phase 8A experiment: .venv/bin/python experiments/long_term_memory_experiment.py"""
+"""Phase 8A 离线实验；运行 .venv/bin/python experiments/long_term_memory_experiment.py。"""
 
 from pathlib import Path
 import sys
@@ -34,7 +34,7 @@ def main():
         assert all("Bob" not in record.text for record in hits)
         assert bob.search("Cedar")[0].text == "Project Cedar belongs to Bob"
         assert reopened.search("add")[0].id == injected.id
-        assert reopened.search("%") == []  # SQL wildcards are literal input
+        assert reopened.search("%") == []  # SQL 通配符在这里按普通输入字符处理。
         for invalid in ("", "   "):
             try:
                 reopened.write(invalid)
@@ -84,8 +84,8 @@ def main():
         assert llm.calls[0][0][-2].role == "user"
         assert injected.id in llm.calls[0][0][-2].content
         assert session.last_retrieval[0].id == injected.id
-        assert len(reopened.search("add")) == 1  # sessions never write automatically
-        assert len(session.memory.retrieve()) == 4  # only current turn, no retrieved message
+        assert len(reopened.search("add")) == 1  # 会话不会自动写入长期记忆。
+        assert len(session.memory.retrieve()) == 4  # 只提交当前轮，不提交检索到的消息。
         assert all(injected.id not in m.content for m in session.memory.retrieve())
         session.run("Answer after refusal")
         assert session.last_retrieval == ()

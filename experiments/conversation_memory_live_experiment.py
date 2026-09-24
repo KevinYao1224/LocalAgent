@@ -1,18 +1,18 @@
-"""Phase 7B: evaluate short-term memory with a real Ollama model.
+"""Phase 7B：使用真实 Ollama 模型评估短期记忆。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/conversation_memory_live_experiment.py --runs 3
 
-The experiment uses fresh sessions for four different questions:
+实验会为以下四类问题分别创建新会话：
 
-1. Can the model recall an exact fact from an earlier turn?
-2. Does a newer fact replace an older one?
-3. Does whole-turn eviction really make an old fact unavailable?
-4. What does a long retained tool result do to prompt size and recall?
+1. 模型能否回忆较早轮次中的确切事实？
+2. 新事实是否会替换旧事实？
+3. 淘汰完整轮次后，旧事实是否确实不可用？
+4. 保留较长的工具结果会如何影响 prompt 大小和事实回忆？
 
-Results are exploratory rather than unit-test assertions because model output
-can vary. The production memory implementation is not modified by this file.
+由于模型输出可能变化，结果用于探索观察，不作为单元测试断言。本文件不会修改正式
+memory 实现。
 """
 
 import argparse
@@ -42,7 +42,7 @@ LONG_RESULT_MARKER = "VAULT-48291"
 
 @dataclass(frozen=True, slots=True)
 class ScenarioMetrics:
-    """Observable result of one scenario, including its final query."""
+    """一个场景的可观察结果，包括最后一次查询。"""
 
     name: str
     correct: bool
@@ -57,7 +57,7 @@ class ScenarioMetrics:
 
 
 def load_archive() -> str:
-    """Return a deliberately long record with one fact near its middle."""
+    """返回一条刻意构造的长记录，其中部包含一个事实。"""
 
     prefix = "archived telemetry without actionable facts " * 180
     suffix = "historical diagnostics without actionable facts " * 180

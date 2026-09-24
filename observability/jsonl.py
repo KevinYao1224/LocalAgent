@@ -1,4 +1,4 @@
-"""Versioned, append-only structured trace for local experiments."""
+"""供本地实验使用的、带版本号且只追加的结构化 trace。"""
 
 import json
 from dataclasses import asdict
@@ -27,7 +27,7 @@ SCHEMA_VERSION = 1
 
 
 def _json_value(value: Any) -> Any:
-    """Convert opted-in payloads without silently stringifying unknown objects."""
+    """转换明确选择记录的 payload；遇到未知对象时不会静默转成字符串。"""
 
     if value is None or isinstance(value, (str, bool, int, float)):
         return value
@@ -41,7 +41,7 @@ def _json_value(value: Any) -> Any:
 
 
 def event_record(event: AgentEvent, *, include_content: bool = False) -> dict[str, Any]:
-    """Project one event to a stable JSON record; raw content is opt-in."""
+    """将单个事件投影为稳定的 JSON 记录；原始内容必须显式启用才会写入。"""
 
     if not event.run_id or event.timestamp is None:
         raise ValueError("Trace events need a run_id and timestamp.")
@@ -154,10 +154,10 @@ def event_record(event: AgentEvent, *, include_content: bool = False) -> dict[st
 
 
 class JsonlTraceLogger:
-    """Append one UTF-8 JSON line per event; propagate serialization/I/O errors.
+    """每个事件追加一行 UTF-8 JSON；序列化或 I/O 错误会向调用方传播。
 
-    Parent directories must exist. One lock protects writes from this logger
-    instance; sharing a path between processes is outside this contract.
+    父目录必须已存在。锁只保护此 logger 实例内的写入；多个进程共用同一路径不在
+    此保证范围内。
     """
 
     def __init__(self, path: str | Path, *, include_content: bool = False) -> None:

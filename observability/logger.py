@@ -19,21 +19,21 @@ from observability.events import (
 
 
 class AgentLogger(Protocol):
-    """Receive structured events emitted by AgentLoop."""
+    """接收 AgentLoop 发出的结构化事件。"""
 
     def log(self, event: AgentEvent) -> None:
         pass
 
 
 class NullLogger:
-    """Discard events when logging is not requested."""
+    """未请求日志记录时丢弃事件。"""
 
     def log(self, event: AgentEvent) -> None:
         pass
 
 
 class CompositeLogger:
-    """Forward an event to each logger in order, without hiding failures."""
+    """按顺序将事件转发给多个 logger，不隐藏其抛出的错误。"""
 
     def __init__(self, *loggers: AgentLogger) -> None:
         self._loggers = loggers
@@ -44,7 +44,7 @@ class CompositeLogger:
 
 
 class HumanReadableLogger:
-    """Write an AgentLoop trace intended for local terminal experiments."""
+    """将 AgentLoop 轨迹输出为适合本地终端实验阅读的日志。"""
 
     def __init__(
         self,
@@ -227,7 +227,7 @@ class HumanReadableLogger:
             self._write(f"  {line}")
 
     def _preview(self, text: str) -> str:
-        """Limit terminal output without changing the underlying event."""
+        """限制终端预览长度，但不修改底层事件内容。"""
 
         if self._max_text_chars is None or len(text) <= self._max_text_chars:
             return text

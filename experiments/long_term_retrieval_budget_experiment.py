@@ -1,4 +1,4 @@
-"""Offline Phase 8B: .venv/bin/python experiments/long_term_retrieval_budget_experiment.py"""
+"""Phase 8B 离线实验；运行 .venv/bin/python experiments/long_term_retrieval_budget_experiment.py。"""
 
 import json
 import sys
@@ -69,8 +69,8 @@ def main():
         zero.run("Look up Cedar", memory_query="Cedar")
         assert zero.last_retrieval_selection.dropped_count == 2
         assert zero.last_retrieval_selection.payload_characters == 0
-        assert len(zero_model.calls[0]) == 1  # no empty retrieval message
-        assert len(store.search("Cedar")) == 2  # selection did not delete records
+        assert len(zero_model.calls[0]) == 1  # 不添加空的检索消息。
+        assert len(store.search("Cedar")) == 2  # 选择过程没有删除记录。
         print("zero budget excludes whole records without changing SQLite: PASS")
 
         default_model = CapturingLLM()

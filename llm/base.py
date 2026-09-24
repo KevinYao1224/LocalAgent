@@ -10,7 +10,7 @@ Role = Literal["system", "user", "assistant", "tool"]
 
 
 class ReasoningReplaySupport(str, Enum):
-    """Whether a provider adapter can send reasoning back to its API."""
+    """声明 provider 适配器能否将 reasoning 再发送给对应 API。"""
 
     UNSUPPORTED = "unsupported"
     SUPPORTED = "supported"
@@ -18,7 +18,7 @@ class ReasoningReplaySupport(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class LLMCapabilities:
-    """Provider transport capabilities used by the agent runtime."""
+    """供 Agent Runtime 使用的 provider 传输能力声明。"""
 
     reasoning_replay: ReasoningReplaySupport = (
         ReasoningReplaySupport.UNSUPPORTED
@@ -27,7 +27,7 @@ class LLMCapabilities:
 
 @dataclass(frozen=True, slots=True)
 class ReasoningBlock:
-    """Provider reasoning captured with provenance for safe replay."""
+    """保存带来源信息的 provider reasoning，以便在满足条件时安全回放。"""
 
     provider: str
     model: str | None
@@ -64,19 +64,19 @@ class ModelResponse:
 class LLM(ABC):
     @property
     def provider_name(self) -> str:
-        """Stable provider name used in reasoning provenance."""
+        """返回稳定的 provider 名称，供 reasoning 来源标记使用。"""
 
         return type(self).__name__
 
     @property
     def model_name(self) -> str | None:
-        """Model identifier when the adapter exposes one."""
+        """适配器能够提供时，返回模型标识。"""
 
         return None
 
     @property
     def capabilities(self) -> LLMCapabilities:
-        """Use conservative defaults for adapters without declarations."""
+        """未声明能力的适配器使用保守的默认值。"""
 
         return LLMCapabilities()
 
@@ -84,7 +84,7 @@ class LLM(ABC):
         self,
         response: ModelResponse,
     ) -> ReasoningBlock | None:
-        """Attach provider provenance to a raw thinking response."""
+        """为原始 thinking 响应附加 provider 来源信息。"""
 
         if not response.thinking:
             return None

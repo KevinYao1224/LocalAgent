@@ -1,4 +1,4 @@
-"""Real Ollama embedding smoke test (requires an embedding-enabled server).
+"""真实 Ollama embedding smoke test（需要启用 embedding 的服务）。
 
     .venv/bin/python experiments/semantic_memory_live_experiment.py --model <embedding-model>
 """

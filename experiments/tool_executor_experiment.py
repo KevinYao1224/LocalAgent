@@ -1,6 +1,6 @@
-"""Deterministic experiments for ToolExecutor and ToolResult.
+"""ToolExecutor 和 ToolResult 的确定性实验。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/tool_executor_experiment.py
 """
@@ -34,7 +34,7 @@ failing_tool = Tool(
 
 
 class FilteredExecutor(ToolExecutor):
-    """Simulate a future permission layer that filters advertised tools."""
+    """模拟未来由权限层过滤可提供工具的 executor。"""
 
     def available_tools(self):
         return []

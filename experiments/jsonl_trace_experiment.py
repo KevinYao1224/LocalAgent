@@ -1,6 +1,6 @@
-"""Read back a versioned Phase 12 JSONL trace without a model server.
+"""无需模型服务，写入并重新读取带版本号的 Phase 12 JSONL trace。
 
-Run: .venv/bin/python experiments/jsonl_trace_experiment.py
+运行：.venv/bin/python experiments/jsonl_trace_experiment.py
 """
 
 from datetime import datetime
@@ -78,7 +78,7 @@ def completed_and_appended(path: Path) -> None:
     result = loop.run([Message(role="user", content="Please remember " + SECRET)])
     records = read_records(path)
     assert result.completed and result.metrics is not None
-    assert len(records) == 13  # start + 3 model calls + 2 tools + empty + finish
+    assert len(records) == 13  # 开始 + 3 次模型调用 + 2 次工具调用 + 空响应 + 结束
     assert [r["event"] for r in records].count("ToolExecutionFinished") == 2
     assert all(r["schema_version"] == 1 for r in records)
     assert all(r["run_id"] == result.run_id for r in records)
@@ -107,7 +107,7 @@ def completed_and_appended(path: Path) -> None:
     other = loop.run([Message(role="user", content="New invocation")])
     appended = read_records(path)
     assert other.run_id != result.run_id
-    assert len(appended) == len(records) + 4  # started, model call, response, finished
+    assert len(appended) == len(records) + 4  # 开始、模型调用、响应、结束
     assert all(r["run_id"] == other.run_id for r in appended[len(records):])
     assert other.metrics.prompt_tokens is None
     print(f"Appended a second run with ID {other.run_id}")
@@ -211,8 +211,7 @@ def opt_in_and_failure_semantics(directory: Path) -> None:
     assert result.run_id == records[-1]["run_id"]
     print("Explicit full-content trace includes prompt, thinking, arguments and result")
 
-    # Serialization finishes before opening the file: unsupported payloads
-    # never become partial JSONL records.
+    # 序列化在打开文件前完成：不支持的 payload 不会留下不完整的 JSONL 记录。
     class ObjectLLM(LLM):
         def chat(self, messages, tools=None):
             return ModelResponse(tool_calls=[ToolCall("echo", {"value": object()})])

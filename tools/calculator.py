@@ -4,25 +4,25 @@ from tools.base import Tool
 
 
 def add(a: float, b: float) -> float:
-    """Return the sum of two numbers."""
+    """返回两个数的和。"""
 
     return a + b
 
 
 def subtract(a: float, b: float) -> float:
-    """Subtract b from a."""
+    """用 a 减去 b。"""
 
     return a - b
 
 
 def multiply(a: float, b: float) -> float:
-    """Return the product of two numbers."""
+    """返回两个数的乘积。"""
 
     return a * b
 
 
 def divide(a: float, b: float) -> float:
-    """Divide a by b."""
+    """用 a 除以 b。"""
 
     if b == 0:
         raise ValueError("Cannot divide by zero.")
@@ -31,7 +31,7 @@ def divide(a: float, b: float) -> float:
 
 
 def _binary_number_parameters() -> dict[str, Any]:
-    """Create an independent JSON Schema for a binary operation."""
+    """为二元运算创建一份独立的 JSON Schema。"""
 
     return {
         "type": "object",

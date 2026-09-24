@@ -8,10 +8,10 @@ from runtime.result import ToolResult
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class EventMetadata:
-    """Runtime-supplied correlation and timing fields on every event.
+    """由 Runtime 为事件提供的关联标识和计时字段。
 
-    Optional defaults allow small hand-built events in existing experiments.
-    AgentLoop always populates run_id and an aware UTC timestamp.
+    可选默认值使现有实验能够简便地手动构造事件。AgentLoop 总会填入 run_id 和
+    带时区的 UTC 时间戳。
     """
 
     run_id: str | None = None
@@ -35,7 +35,7 @@ class ModelCallStarted(EventMetadata):
 
 @dataclass(frozen=True, slots=True)
 class StepPreparationFailed(EventMetadata):
-    """Tool discovery or context construction failed before the model call."""
+    """模型调用开始前，工具发现或上下文构造失败。"""
 
     step: int
     error_type: str

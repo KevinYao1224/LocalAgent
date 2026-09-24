@@ -1,4 +1,4 @@
-"""Provider-neutral LLM types and concrete provider adapters."""
+"""与 provider 无关的 LLM 类型及具体 provider 适配器。"""
 
 from llm.base import (
     LLM,

@@ -1,4 +1,4 @@
-"""Agent orchestration components."""
+"""Agent 编排组件的公开接口。"""
 
 from agent.context import (
     ContextBuilder,

@@ -1,12 +1,11 @@
-"""Compare ContextBuilder replay policies against a local Ollama model.
+"""使用本地 Ollama 模型比较 ContextBuilder 的 reasoning replay 策略。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/reasoning_replay_ab_experiment.py --runs 3
 
-Unlike the deterministic experiments, this script requires a running Ollama
-server and the configured model. Results are exploratory rather than unit-test
-assertions because local model output can vary between runs.
+与确定性实验不同，本脚本需要运行中的 Ollama 服务和已配置的模型。由于本地模型输出
+可能随运行变化，结果用于探索观察，不作为单元测试断言。
 """
 
 import argparse
@@ -32,7 +31,7 @@ MAX_STEPS = 6
 
 
 class CountingContextBuilder(ContextBuilder):
-    """Count actual replays while preserving ContextBuilder behavior."""
+    """统计实际 replay 次数，同时保留 ContextBuilder 原有行为。"""
 
     def __init__(self, policy: ReasoningReplayPolicy) -> None:
         super().__init__(reasoning_replay=policy)
@@ -211,7 +210,7 @@ def main() -> None:
     results = {policy: [] for policy in policies}
 
     with OllamaClient(model=MODEL, timeout=180.0) as llm:
-        # Alternate policies to reduce ordering and model-warmup bias.
+        # 交替运行不同策略，降低顺序和模型预热造成的偏差。
         for index in range(1, args.runs + 1):
             for policy in policies:
                 metrics = run_once(llm, policy)

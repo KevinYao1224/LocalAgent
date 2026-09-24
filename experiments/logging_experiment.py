@@ -1,6 +1,6 @@
-"""Capture and inspect the human-readable AgentLoop log.
+"""捕获并检查 AgentLoop 的人类可读日志。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/logging_experiment.py
 """

@@ -1,6 +1,6 @@
-"""Experiments for multiple calculator tools and multi-step AgentLoop runs.
+"""多个计算器工具与多步 AgentLoop 运行实验。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/multiple_tools_experiment.py
 """
@@ -18,7 +18,7 @@ from tools import ToolRegistry, calculator_tools
 
 
 class ScriptedLLM(LLM):
-    """Return prepared responses so only Runtime behavior is tested."""
+    """返回预先准备的响应，以便只测试 Runtime 行为。"""
 
     def __init__(self, responses: Iterable[ModelResponse]) -> None:
         self._responses = iter(responses)

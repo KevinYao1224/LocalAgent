@@ -1,4 +1,4 @@
-"""Public interfaces and built-in tools for the tools package."""
+"""tools 包的公开接口和内置工具。"""
 
 from tools.base import Tool, ToolExecutionError
 from tools.calculator import (

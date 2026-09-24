@@ -1,4 +1,4 @@
-"""Small live retrieval evaluation; optionally test the full retrieval-to-answer path.
+"""小规模在线检索评估；可选测试从检索到生成回答的完整链路。
 
     .venv/bin/python experiments/semantic_retrieval_eval_experiment.py
     .venv/bin/python experiments/semantic_retrieval_eval_experiment.py --chat

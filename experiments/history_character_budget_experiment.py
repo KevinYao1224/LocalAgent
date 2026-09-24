@@ -1,6 +1,6 @@
-"""Offline Phase 7C experiments for complete-turn character budgeting.
+"""Phase 7C 完整轮次字符预算的离线实验。
 
-Run from the project root:
+从项目根目录运行：
 
     .venv/bin/python experiments/history_character_budget_experiment.py
 """
@@ -19,7 +19,7 @@ from tools import ToolRegistry, add_tool
 
 
 class RecordingLLM(LLM):
-    """Return scripted answers while preserving each actual model context."""
+    """返回脚本化回答，同时保存每次模型调用实际收到的上下文。"""
 
     def __init__(self, responses: list[ModelResponse]) -> None:
         self._responses = iter(responses)

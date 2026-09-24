@@ -1,11 +1,10 @@
-"""Inspect AgentState and AgentStep without requiring an Ollama server.
+"""无需 Ollama 服务即可检查 AgentState 和 AgentStep。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/trajectory_experiment.py
 
-The experiments show why formal conversation messages and the complete
-runtime trajectory are separate data structures.
+这些实验展示正式对话消息与完整运行轨迹为何需要使用不同的数据结构。
 """
 
 from collections.abc import Iterable
@@ -21,7 +20,7 @@ from tools import ToolRegistry, calculator_tools
 
 
 class ScriptedLLM(LLM):
-    """Return prepared responses so trajectory behavior is deterministic."""
+    """返回预先准备的响应，使轨迹行为可重复验证。"""
 
     def __init__(self, responses: Iterable[ModelResponse]) -> None:
         self._responses = iter(responses)

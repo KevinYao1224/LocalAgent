@@ -13,7 +13,7 @@ class ToolExecutionError(Exception):
 class Tool:
     name: str
     description: str
-    parameters: dict[str, Any]  # JSON Schema Draft 2020-12
+    parameters: dict[str, Any]  # JSON Schema Draft 2020-12 参数定义
     handler: Callable[..., Any]
 
     def execute(self, arguments: dict[str, Any]) -> Any:

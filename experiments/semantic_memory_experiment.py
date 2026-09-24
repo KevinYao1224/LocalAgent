@@ -1,4 +1,4 @@
-"""Offline Phase 8C: .venv/bin/python experiments/semantic_memory_experiment.py"""
+"""Phase 8C 离线实验；运行 .venv/bin/python experiments/semantic_memory_experiment.py。"""
 
 import json
 import httpx
@@ -17,7 +17,7 @@ from tools import ToolRegistry
 
 
 class FixedEmbedder:
-    """Known geometry, not a fake answer generator: searches still use cosine."""
+    """提供已知几何向量而非伪造答案；检索仍通过 cosine 相似度完成。"""
 
     def __init__(self, model_id="demo:v1", dimensions=2):
         self.model_id = model_id
@@ -73,7 +73,7 @@ def main():
         alice.write("Another color note", {"kind": "other"})
         bob.write("Bob deployment secret", {"kind": "project"})
         reopened = SQLiteSemanticMemory(path, "alice", FixedEmbedder())
-        # Query shares no literal substring with the top record.
+        # 查询词与排名第一的记录不共享字面子串。
         hits = reopened.search_with_scores("Where is the region?", 1,
                                           {"kind": "project"})
         assert hits[0].record.id == project.id

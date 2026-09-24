@@ -1,6 +1,6 @@
-"""Verify that canonical messages are derived only from trajectory facts.
+"""验证规范消息只由轨迹事实投影而来。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/conversation_projection_experiment.py
 """
@@ -32,8 +32,8 @@ def experiment_projection_rules() -> None:
         result=ToolResult.succeeded(tool_name="add", value=19),
     )
 
-    # Empty and thinking-only responses are runtime facts, not conversation
-    # messages. Both must remain in the trajectory while projection skips them.
+        # 空响应和仅含 thinking 的响应属于运行事实，不是对话消息。轨迹必须保留二者，
+        # 但消息投影应跳过它们。
     state.begin_step()
     state.record_model_response(ModelResponse())
     state.begin_step()

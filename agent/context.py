@@ -7,7 +7,7 @@ from llm.base import LLM, Message, ReasoningReplaySupport
 
 
 class ReasoningReplayPolicy(str, Enum):
-    """How ContextBuilder may place captured reasoning into model input."""
+    """规定 ContextBuilder 是否以及如何把已捕获的 reasoning 放入模型输入。"""
 
     OFF = "off"
     LATEST_PENDING = "latest_pending"
@@ -15,7 +15,7 @@ class ReasoningReplayPolicy(str, Enum):
 
 @dataclass(slots=True)
 class ContextBuildResult:
-    """The model input and the step whose reasoning was replayed, if any."""
+    """保存本次模型输入，以及实际回放 reasoning 的 step（如果有）。"""
 
     messages: list[Message]
     replayed_reasoning_step: int | None = None
@@ -26,7 +26,7 @@ class ContextBuildResult:
 
 
 class ContextBuilder:
-    """Build policy-aware model input from an AgentState trajectory."""
+    """根据 AgentState 轨迹和策略构造模型输入。"""
 
     def __init__(
         self,

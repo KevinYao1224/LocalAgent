@@ -1,4 +1,4 @@
-"""Ollama /api/embed adapter; independent from the chat model interface."""
+"""Ollama /api/embed 适配器；与聊天模型接口相互独立。"""
 
 import httpx
 
@@ -24,7 +24,7 @@ class OllamaEmbedder:
         embeddings = response.json()["embeddings"]
         if not isinstance(embeddings, list) or len(embeddings) != 1:
             raise ValueError("Ollama must return one embedding for one input")
-        return embeddings[0]  # SQLiteSemanticMemory validates vector content.
+        return embeddings[0]  # 向量内容由 SQLiteSemanticMemory 校验。
 
     def close(self) -> None:
         self._client.close()

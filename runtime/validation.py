@@ -8,15 +8,15 @@ from tools.base import Tool
 
 
 class ToolArgumentsValidationError(Exception):
-    """Raised when model-provided arguments do not match a tool schema."""
+    """模型提供的参数与工具 schema 不匹配时抛出。"""
 
 
 class ToolSchemaError(Exception):
-    """Raised when a tool contains an invalid JSON Schema definition."""
+    """工具包含无效 JSON Schema 定义时抛出。"""
 
 
 class ToolArgumentsValidator:
-    """Validate untrusted tool arguments with JSON Schema Draft 2020-12."""
+    """使用 JSON Schema Draft 2020-12 校验不可信的工具参数。"""
 
     def validate(self, tool: Tool, arguments: Any) -> None:
         try:

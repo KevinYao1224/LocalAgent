@@ -6,7 +6,7 @@ from typing import Any
 
 
 class ToolErrorType(str, Enum):
-    """Categories of expected tool-call failures."""
+    """预期内工具调用失败的分类。"""
 
     TOOL_NOT_FOUND = "tool_not_found"
     TOOL_NOT_AVAILABLE = "tool_not_available"
@@ -16,7 +16,7 @@ class ToolErrorType(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class ToolResult:
-    """The structured outcome of one tool execution."""
+    """一次工具执行的结构化结果。"""
 
     tool_name: str
     success: bool
@@ -63,7 +63,7 @@ class ToolResult:
         )
 
     def to_message_content(self) -> str:
-        """Convert this result to the text sent back to the model."""
+        """将结果转换为返回给模型的文本。"""
 
         if not self.success:
             assert self.error_type is not None

@@ -7,7 +7,7 @@ from llm.base import Message
 
 @dataclass(frozen=True, slots=True)
 class ConversationMemorySelection:
-    """One observable, non-destructive selection of retained history."""
+    """一次可观察且不修改存储内容的历史选择结果。"""
 
     messages: list[Message]
     selected_turns: int
@@ -17,11 +17,10 @@ class ConversationMemorySelection:
 
 
 class ConversationMemory:
-    """Keep snapshots of the latest completed turns, without raw thinking.
+    """保存最近已完成轮次的快照，不保存 raw thinking。
 
-    A turn starts with one user message and ends with a final assistant answer.
-    Eviction always removes whole turns, including their tool exchanges.
-    This limits turn count, not tokens or bytes.
+    一轮从一条 user 消息开始，以 assistant 最终回答结束。淘汰时始终移除完整轮次，
+    包括其中的工具交互。此处限制的是轮次数，不是 token 或字节数。
     """
 
     def __init__(self, max_turns: int = 5) -> None:
@@ -36,7 +35,7 @@ class ConversationMemory:
         return len(self._turns)
 
     def append(self, messages: list[Message]) -> None:
-        """Validate and store one completed turn as an independent snapshot."""
+        """校验一轮已完成的消息，并将其作为独立快照保存。"""
 
         snapshot = deepcopy(messages)
         self._validate_turn(snapshot)
@@ -45,7 +44,7 @@ class ConversationMemory:
         self._turns.append(snapshot)
 
     def retrieve(self) -> list[Message]:
-        """Return chronological history that callers can mutate safely."""
+        """按时间顺序返回历史副本，调用方可以安全修改副本。"""
 
         return self.select().messages
 
@@ -53,12 +52,11 @@ class ConversationMemory:
         self,
         history_character_budget: int | None = None,
     ) -> ConversationMemorySelection:
-        """Select the newest complete-turn suffix within a character budget.
+        """在字符预算内选择最新的连续完整轮次后缀。
 
-        The budget counts only ``Message.content`` in retained history. It does
-        not include a system prompt, the current user message, tool schemas, or
-        provider formatting. Selection never truncates a turn and never removes
-        a turn from storage.
+        预算只统计保留历史中 ``Message.content`` 的字符数，不包括 system prompt、
+        当前 user 消息、工具 schema 或 provider 格式化开销。选择过程不会截断轮次，
+        也不会从存储中删除轮次。
         """
 
         self._validate_history_character_budget(history_character_budget)
@@ -73,8 +71,8 @@ class ConversationMemory:
                 and selected_characters + turn_characters
                 > history_character_budget
             ):
-                # Stopping, rather than skipping this turn, preserves a true
-                # suffix and prevents an older fact from bypassing a newer one.
+                # 遇到放不下的轮次就停止而非跳过，以保持真正的连续后缀，
+                # 并避免旧事实绕过较新的事实被选中。
                 break
             selected_reversed.append(turn)
             selected_characters += turn_characters
@@ -91,7 +89,7 @@ class ConversationMemory:
         )
 
     def clear(self) -> None:
-        """Forget the retained turns in this memory instance."""
+        """清除此 memory 实例中保留的轮次。"""
 
         self._turns.clear()
 
@@ -115,7 +113,7 @@ class ConversationMemory:
         pending_tools: deque[str] = deque()
         for index, message in enumerate(messages[1:], start=1):
             if pending_tools:
-                # The current runtime records results in tool-call order.
+                # 当前 Runtime 按工具调用顺序记录结果。
                 if (
                     message.role != "tool"
                     or message.tool_name != pending_tools[0]

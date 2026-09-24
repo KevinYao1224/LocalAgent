@@ -1,18 +1,18 @@
-"""Deterministic experiments for understanding AgentLoop.
+"""用于理解 AgentLoop 的确定性实验。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/agent_loop_experiment.py
 
-No Ollama server is needed. ScriptedLLM returns prepared model responses so
-each experiment isolates one control-flow behavior of the runtime.
+无需 Ollama 服务。ScriptedLLM 返回预先准备好的模型响应，使每个实验都能单独观察
+Runtime 的一种控制流行为。
 """
 
 from collections.abc import Iterable
 from pathlib import Path
 import sys
 
-# Allow this file to be launched directly from the experiments directory.
+# 允许从 experiments 目录直接启动此文件。
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agent.loop import AgentLoop
@@ -23,7 +23,7 @@ from tools.registry import ToolRegistry
 
 
 class ScriptedLLM(LLM):
-    """A predictable LLM replacement used only by these experiments."""
+    """仅供这些实验使用、响应可预测的 LLM 替代实现。"""
 
     def __init__(self, responses: Iterable[ModelResponse]) -> None:
         self._responses = iter(responses)

@@ -1,4 +1,4 @@
-"""Explicit, namespace-scoped text memory. No model or tool can write here directly."""
+"""显式、按 namespace 隔离的文本记忆；模型和工具不能直接写入。"""
 
 import json
 import sqlite3
@@ -19,7 +19,7 @@ class MemoryRecord:
 
 
 class LongTermMemory(Protocol):
-    """Application-controlled writes and deterministic, scoped reads."""
+    """由应用控制写入，并在限定范围内执行确定性读取的接口。"""
 
     def write(
         self, text: str, metadata: dict[str, Any] | None = None
@@ -32,10 +32,10 @@ class LongTermMemory(Protocol):
 
 
 class SQLiteLongTermMemory:
-    """Persist text in SQLite; match case-insensitive literal substrings, newest first.
+    """将文本持久化到 SQLite；按不区分大小写的字面子串匹配，最新记录优先。
 
-    Each instance is bound to one caller-supplied namespace. The application
-    owns namespace selection; this is isolation, not user authentication.
+    每个实例绑定到调用方提供的一个 namespace。namespace 由应用选择，用于隔离数据，
+    不提供用户身份认证。
     """
 
     def __init__(self, path: str | Path, namespace: str) -> None:
@@ -87,8 +87,8 @@ class SQLiteLongTermMemory:
         if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
             raise ValueError("limit must be a positive integer")
         filters = json.loads(self._encode_metadata(metadata_filter))
-        # Filter before applying top-k: an older matching record must not be
-        # lost merely because newer records have different metadata.
+        # 先筛选 metadata 再应用 top-k，避免旧的匹配记录仅因较新的记录
+        # metadata 不同而被挤出结果。
         with closing(sqlite3.connect(self.path)) as connection:
             rows = connection.execute(
                 "SELECT id, text, created_at, metadata FROM memories "

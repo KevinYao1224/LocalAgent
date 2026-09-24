@@ -1,6 +1,6 @@
-"""Verify that remembered tool calls cannot bypass current capabilities.
+"""验证历史中的工具调用不能绕过当前 capability 限制。
 
-Run from the project root:
+从项目根目录运行：
 
     .venv/bin/python experiments/tool_capability_experiment.py
 """
@@ -18,7 +18,7 @@ from tools import Tool, ToolRegistry
 
 
 class RememberedCallLLM(LLM):
-    """Request a historical tool even though it is no longer advertised."""
+    """请求调用历史中曾可用、但当前已不再提供的工具。"""
 
     def __init__(self) -> None:
         self._responses = iter([
@@ -61,7 +61,7 @@ def main() -> None:
     registry.register(secret_tool)
     executor = ToolExecutor(registry)
 
-    # Simulate a previous turn in which the tool was advertised and executed.
+    # 模拟该工具曾在上一轮提供给模型并成功执行。
     previous = executor.execute(ToolCall(
         name="read_secret",
         arguments={"key": "ALPHA"},
@@ -85,7 +85,7 @@ def main() -> None:
         Message(role="user", content="Use that tool again."),
     ]
 
-    # The registry still contains read_secret, but current capabilities do not.
+    # 注册表仍包含 read_secret，但当前 capability 集合不包含它。
     executor.disable_tool("read_secret")
     llm = RememberedCallLLM()
     result = AgentLoop(llm=llm, executor=executor, max_steps=3).run(history)

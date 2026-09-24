@@ -1,6 +1,6 @@
-"""Phase 7C live check: exclude one oversized tool turn as a whole.
+"""Phase 7C 在线检查：将一轮超预算的工具交互整体排除。
 
-Run from the project root after Ollama is available:
+Ollama 服务可用后，从项目根目录运行：
 
     .venv/bin/python experiments/history_character_budget_live_experiment.py
 """
@@ -30,7 +30,7 @@ SYSTEM_PROMPT = (
 
 
 class OneShotArchive:
-    """Expose the long observation once so the model cannot reacquire it."""
+    """仅提供一次长 observation，避免模型重新调用工具获取该内容。"""
 
     def __init__(self) -> None:
         self._used = False

@@ -3,11 +3,10 @@ from llm.base import Message
 
 
 class ConversationProjector:
-    """Build the canonical model conversation from trajectory facts.
+    """根据轨迹事实构造规范的模型对话。
 
-    Projection is intentionally policy-free. It does not replay thinking,
-    truncate history, summarize content, or add memory. Those choices belong
-    to ContextBuilder and later context policies.
+    投影过程有意保持无策略：不回放 thinking、不截断历史、不摘要内容，也不添加
+    memory。这些选择属于 ContextBuilder 或后续的上下文策略。
     """
 
     def project(self, trajectory: list[TrajectoryEntry]) -> list[Message]:
@@ -19,7 +18,7 @@ class ConversationProjector:
         return messages
 
     def project_entry(self, entry: TrajectoryEntry) -> list[Message]:
-        """Project one fact without applying context-selection policy."""
+        """投影一条轨迹事实，不应用上下文选择策略。"""
 
         if isinstance(entry, InputMessage):
             return [entry.message]

@@ -1,4 +1,4 @@
-"""Agent events and loggers."""
+"""Agent 事件、日志记录器、JSONL trace 和运行指标的公开接口。"""
 
 from observability.events import (
     AgentFinished,

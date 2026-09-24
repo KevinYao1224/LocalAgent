@@ -1,11 +1,10 @@
-"""Inspect Phase 6B reasoning types and safe replay capability handling.
+"""检查 Phase 6B reasoning 类型及安全回放能力处理。
 
-Run from the project root:
+从项目根目录运行：
 
     python experiments/reasoning_continuity_experiment.py
 
-No Ollama server is needed. The adapter experiment only inspects local request
-conversion and capability metadata; it does not make an HTTP request.
+无需 Ollama 服务。适配器实验只检查本地请求转换和 capability 元数据，不会发起 HTTP 请求。
 """
 
 from collections.abc import Iterable
@@ -29,7 +28,7 @@ from tools import ToolRegistry
 
 
 class RecordingScriptedLLM(LLM):
-    """Return prepared responses and retain each projected conversation."""
+    """返回预先准备的响应，并保留每次投影生成的对话。"""
 
     def __init__(self, responses: Iterable[ModelResponse]) -> None:
         self._responses = iter(responses)
@@ -81,8 +80,7 @@ def experiment_unsupported_provider_falls_back_safely() -> None:
     assert reasoning.raw_thinking.startswith("Internal reasoning")
     assert result.agent_steps[1].reasoning is None
 
-    # Default projection remains replay-off: the second model call receives
-    # the user message but no assistant thinking message.
+    # 默认投影仍关闭 replay：第二次模型调用收到 user 消息，但不包含 assistant thinking 消息。
     assert len(llm.calls[1]) == 1
     assert llm.calls[1][0].role == "user"
     assert llm.calls[1][0].thinking == ""
@@ -108,8 +106,8 @@ def experiment_supported_capability_does_not_enable_replay() -> None:
     assert reasoning.model == "test-thinking-model"
     assert reasoning.replayable
 
-    # Capability means replay is possible, not that the default projector
-    # should activate it. ContextBuilder policy will make that choice later.
+    # 声明 capability 只表示可以回放，不代表默认投影应启用回放；稍后由 ContextBuilder
+    # 策略作出选择。
     assert len(llm.calls[1]) == 1
     assert llm.calls[1][0].thinking == ""
     print("Supported provider: block is replayable, default remains off.")

@@ -5,7 +5,7 @@ from runtime.result import ToolResult
 
 
 def _add_reported_tokens(total: int | None, reported: int | None) -> int | None:
-    """Keep unknown usage unknown until a provider reports a value."""
+    """provider 尚未报告 token 用量时，继续将其视为未知。"""
 
     if reported is None:
         return total
@@ -14,7 +14,7 @@ def _add_reported_tokens(total: int | None, reported: int | None) -> int | None:
 
 @dataclass(frozen=True, slots=True)
 class RunMetrics:
-    """A snapshot of one run's measured calls, outcomes, and known token usage."""
+    """一次运行中调用次数、结果和已知 token 用量的快照。"""
 
     model_calls: int = 0
     preparation_errors: int = 0

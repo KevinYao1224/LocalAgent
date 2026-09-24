@@ -1,4 +1,4 @@
-"""Tool execution runtime."""
+"""工具执行 Runtime 的公开接口。"""
 
 from runtime.executor import ToolExecutor
 from runtime.result import ToolErrorType, ToolResult

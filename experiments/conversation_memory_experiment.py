@@ -1,4 +1,4 @@
-"""Offline Phase 7A experiments: run python experiments/conversation_memory_experiment.py."""
+"""Phase 7A 离线实验；运行 python experiments/conversation_memory_experiment.py。"""
 
 from copy import deepcopy
 from pathlib import Path
@@ -103,7 +103,7 @@ def experiment_tool_turn_eviction_and_replay():
     assert all(not m.thinking for m in saved)
     assert first.agent_steps[0].reasoning.raw_thinking == "Add first."
 
-    # Neither modifying the result nor a retrieved nested argument changes memory.
+    # 修改返回结果或检索到的嵌套参数，都不应改变 memory 中保存的数据。
     first.agent_steps[0].model_response.tool_calls[0].arguments["a"] = 999
     saved[1].tool_calls[0].arguments["b"] = 999
     assert memory.retrieve()[1].tool_calls[0].arguments == {"a": 1, "b": 2}

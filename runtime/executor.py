@@ -11,7 +11,7 @@ from tools.registry import ToolNotFoundError, ToolRegistry
 
 
 class ToolExecutor:
-    """Execute untrusted model tool calls through a ToolRegistry."""
+    """通过 ToolRegistry 执行不可信的模型工具调用。"""
 
     def __init__(
         self,
@@ -29,7 +29,7 @@ class ToolExecutor:
         self.set_enabled_tools(enabled_tool_names)
 
     def available_tools(self) -> list[Tool]:
-        """Return exactly the tools that are currently executable."""
+        """返回当前确实允许执行的工具。"""
 
         tools = self._registry.all()
         if self._enabled_tool_names is None:
@@ -43,10 +43,10 @@ class ToolExecutor:
         self,
         tool_names: Iterable[str] | None,
     ) -> None:
-        """Replace the active capability set; ``None`` enables all tools.
+        """替换当前 capability 集合；传入 ``None`` 表示启用所有工具。
 
-        Restriction affects both model advertisement and execution. Registered
-        tools outside this set remain in the registry but cannot be invoked.
+        限制同时作用于提供给模型的工具列表和实际执行。集合之外的工具仍保留在注册表中，
+        但不能被调用。
         """
 
         if tool_names is None:
@@ -68,7 +68,7 @@ class ToolExecutor:
         self._enabled_tool_names = names
 
     def disable_tool(self, tool_name: str) -> None:
-        """Remove one registered tool from advertisement and execution."""
+        """从可提供给模型和可执行集合中移除一个已注册工具。"""
 
         self._require_registered(tool_name)
         if self._enabled_tool_names is None:
@@ -78,14 +78,14 @@ class ToolExecutor:
         self._enabled_tool_names.discard(tool_name)
 
     def enable_tool(self, tool_name: str) -> None:
-        """Add one registered tool to a restricted capability set."""
+        """将一个已注册工具加入受限的 capability 集合。"""
 
         self._require_registered(tool_name)
         if self._enabled_tool_names is not None:
             self._enabled_tool_names.add(tool_name)
 
     def execute(self, call: ToolCall) -> ToolResult:
-        """Execute one call and turn expected failures into a ToolResult."""
+        """执行一次调用，并将预期内的失败转换为 ToolResult。"""
 
         try:
             tool = self._registry.get(call.name)
@@ -96,9 +96,8 @@ class ToolExecutor:
                 error_type=ToolErrorType.TOOL_NOT_FOUND,
             )
 
-        # This deliberately checks the same method used for model
-        # advertisement. Future permission-aware executors may override or
-        # dynamically filter available_tools(); execution must honor that view.
+        # 这里有意复用提供给模型的工具列表。未来带权限策略的 executor
+        # 可能重写或动态过滤 available_tools()；实际执行必须遵守该结果。
         if not any(
             available.name == call.name
             for available in self.available_tools()
