@@ -15,6 +15,7 @@ from observability.events import (
 from observability.logger import (
     AgentLogger,
     CompositeLogger,
+    FileDebugLogger,
     HumanReadableLogger,
     NullLogger,
 )
@@ -27,6 +28,7 @@ __all__ = [
     "AgentStarted",
     "CompositeLogger",
     "EmptyModelResponse",
+    "FileDebugLogger",
     "HumanReadableLogger",
     "JsonlTraceLogger",
     "ModelCallFailed",

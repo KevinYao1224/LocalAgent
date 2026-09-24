@@ -45,30 +45,40 @@ python3 -m venv .venv
 它使用脚本化模型检查 AgentLoop 的控制流程。更多离线实验及每项实验观察重点见
 [代码与实验阅读指南](./agent_docs/代码与实验阅读指南.md)。
 
-## 运行会话记忆演示
+## 与 Agent 对话
 
-`main.py` 是一个基于 Ollama 的会话记忆可视化入口，不是覆盖所有能力的通用 CLI。
-先确保 Ollama 服务已启动并且存在默认模型 `qwen3.5:9b`，然后运行：
+启动 Ollama 并准备默认模型 `qwen3.5:9b` 后，从项目根目录运行：
 
 ```bash
-.venv/bin/python main.py --scenario recall
+.venv/bin/python main.py
 ```
 
-省略 `--scenario` 会依次运行全部场景。可选场景为 `recall`、`fact-update`、
-`eviction` 和 `long-tool`。若模型不同，可通过 `--model` 指定；如需连接其他
-Ollama 地址，可通过 `--base-url` 指定。
+输入自然语言连续对话；`:help` 显示命令，`:clear` 清空当前短期会话记忆，`:exit`
+或 Ctrl-D / Ctrl-C 退出。只提问一次可用 `--prompt "计算 (12 + 7) * 5"`。
+`--model`、`--base-url` 和 `--max-turns` 可调整模型、地址及保留的完整历史轮数。
+应用仅注册四则运算工具。
 
-可选地把运行事件追加到 JSONL 文件：
+详细的 run/step、模型 thinking、工具参数和结果、错误及耗时会追加到
+`logs/agent-debug.log`（自动创建目录，已被 git 忽略），终端默认只显示回答。
+可以通过 `--log-file /tmp/opencode/my-agent.log` 指定文件，或添加 `--verbose`
+同时在终端查看详细轨迹。调试日志含原始对话和 thinking；请自行管理日志文件。
+
+还可以将事件追加到独立的 JSONL 文件（需先创建父目录）：
 
 ```bash
 mkdir -p /tmp/opencode
 .venv/bin/python main.py \
-  --scenario recall \
+  --prompt "计算 12 + 7" \
   --trace-jsonl /tmp/opencode/agent-trace.jsonl
 ```
 
 默认 trace 记录事件和指标，不保存对话原文。只有明确需要保存原文时才使用
 `--trace-content`；它会把消息、thinking、工具参数和结果写入 trace。
+不依赖 Ollama 的交互和文件日志实验：
+
+```bash
+.venv/bin/python experiments/interactive_cli_experiment.py
+```
 
 ## 当前开发位置
 

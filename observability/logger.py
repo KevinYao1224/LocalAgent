@@ -1,5 +1,6 @@
 import json
 import sys
+from pathlib import Path
 
 from typing import Protocol, TextIO
 
@@ -234,3 +235,29 @@ class HumanReadableLogger:
 
         omitted = len(text) - self._max_text_chars
         return f"{text[:self._max_text_chars]}... <{omitted} chars omitted>"
+
+
+class FileDebugLogger:
+    """将完整的人类可读 Agent 事件追加到指定 UTF-8 文件。
+
+    使用 with 管理文件生命周期；HumanReadableLogger 每次事件后刷新文件，
+    方便运行中直接查看调试轨迹。日志含对话、thinking 和工具数据。
+    """
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._stream = self.path.open("a", encoding="utf-8")
+        self._formatter = HumanReadableLogger(stream=self._stream)
+
+    def log(self, event: AgentEvent) -> None:
+        self._formatter.log(event)
+
+    def close(self) -> None:
+        self._stream.close()
+
+    def __enter__(self) -> "FileDebugLogger":
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+        self.close()

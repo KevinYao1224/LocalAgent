@@ -1,310 +1,148 @@
-"""使用标准 Agent 组件观察 Phase 7B 的记忆场景。
-
-运行全部场景：
-
-    python main.py
-
-需要较短的运行轨迹时，可只运行一个场景：
-
-    python main.py --scenario recall
-    python main.py --scenario fact-update
-    python main.py --scenario eviction
-    python main.py --scenario long-tool
-
-如需在可读输出之外保存仅含元数据的 trace：
-
-    python main.py --scenario recall --trace-jsonl /tmp/opencode/agent-trace.jsonl
-"""
+"""与本地 Ollama Agent 连续对话：python main.py（或 --prompt 单次提问）。"""
 
 import argparse
-from dataclasses import dataclass
+from collections.abc import Callable
 from pathlib import Path
 
-from agent import AgentLoop, AgentRunResult, AgentSession
+from agent import AgentLoop, AgentSession
+from llm.base import LLM
 from llm.ollama import OllamaClient
 from memory import ConversationMemory
-from observability import CompositeLogger, HumanReadableLogger, JsonlTraceLogger
+from observability import (
+    AgentLogger,
+    CompositeLogger,
+    FileDebugLogger,
+    HumanReadableLogger,
+    JsonlTraceLogger,
+)
 from runtime import ToolExecutor
-from tools import Tool, ToolRegistry
+from tools import ToolRegistry, calculator_tools
 
 
-DEFAULT_MODEL = "qwen3.5:9b"
+DEFAULT_LOG_FILE = Path("logs/agent-debug.log")
 SYSTEM_PROMPT = (
-    "You are evaluating conversation memory. Follow the user's requested "
-    "answer format exactly. Use only facts visible in the conversation or "
-    "tool results. If a requested fact is absent, answer exactly UNKNOWN."
+    "You are a helpful assistant. Use the available calculator tools when arithmetic "
+    "is needed. Answer the user's question using the conversation and tool results."
 )
-LONG_RESULT_MARKER = "VAULT-48291"
-LOGGER_PREVIEW_CHARS = 500
-MEMORY_PREVIEW_CHARS = 100
-
-
-@dataclass(frozen=True, slots=True)
-class Scenario:
-    """一组便于人工检查的连续用户轮次。"""
-
-    key: str
-    title: str
-    max_turns: int
-    prompts: tuple[str, ...]
-    expected: str
-    rejected: str | None = None
-    include_archive_tool: bool = False
-
-
-def load_archive() -> str:
-    """返回一段较长的工具 observation，其中部包含一个标记。"""
-
-    prefix = "archived telemetry without actionable facts " * 180
-    suffix = "historical diagnostics without actionable facts " * 180
-    return f"{prefix}\nACCESS MARKER: {LONG_RESULT_MARKER}\n{suffix}"
-
-
-archive_tool = Tool(
-    name="load_archive",
-    description="Load the long archive record containing its access marker.",
-    parameters={
-        "type": "object",
-        "properties": {},
-        "additionalProperties": False,
-    },
-    handler=load_archive,
+HELP_TEXT = (
+    ":help   显示命令\n"
+    ":clear  清除本次会话的短期记忆\n"
+    ":exit   退出（也可按 Ctrl-C 或 Ctrl-D）"
 )
 
 
-SCENARIOS = (
-    Scenario(
-        key="recall",
-        title="Cross-turn fact recall",
-        max_turns=5,
-        prompts=(
-            "Remember that my project code is CEDAR-731. Reply exactly ACK.",
-            "What is my project code? Reply with only the code.",
-        ),
-        expected="CEDAR-731",
-    ),
-    Scenario(
-        key="fact-update",
-        title="New fact replaces old fact",
-        max_turns=5,
-        prompts=(
-            "My deployment region is BLUE-17. Reply exactly ACK.",
-            "Update: my deployment region is now AMBER-42. Reply exactly ACK.",
-            "What is my current deployment region? Reply with only the region.",
-        ),
-        expected="AMBER-42",
-        rejected="BLUE-17",
-    ),
-    Scenario(
-        key="eviction",
-        title="Whole-turn eviction",
-        max_turns=2,
-        prompts=(
-            "Remember that my private label is OBSIDIAN-905. Reply exactly ACK.",
-            "This is filler turn one. Reply exactly FILLER-ONE.",
-            "This is filler turn two. Reply exactly FILLER-TWO.",
-            "What is my private label? Reply only with the label, or UNKNOWN "
-            "if it is absent from the conversation.",
-        ),
-        expected="UNKNOWN",
-        rejected="OBSIDIAN-905",
-    ),
-    Scenario(
-        key="long-tool",
-        title="Recall from a long retained tool result",
-        max_turns=5,
-        prompts=(
-            "Call load_archive. Remember the ACCESS MARKER from its result, "
-            "then reply exactly ACK.",
-            "What was the archive ACCESS MARKER? Reply with only the marker.",
-        ),
-        expected=LONG_RESULT_MARKER,
-        include_archive_tool=True,
-    ),
-)
-
-
-def create_session(
-    llm: OllamaClient,
-    scenario: Scenario,
-    trace_path: Path | None = None,
-    trace_content: bool = False,
-) -> AgentSession:
-    """构造与应用调用公开 AgentSession 接口时相同的组件链。"""
+def create_session(llm: LLM, logger: AgentLogger, max_turns: int) -> AgentSession:
+    """一个进程持有一个 Session；每次提问由 Session 创建独立的 Agent run。"""
 
     registry = ToolRegistry()
-    if scenario.include_archive_tool:
-        registry.register(archive_tool)
-
-    logger = HumanReadableLogger(max_text_chars=LOGGER_PREVIEW_CHARS)
-    if trace_path is not None:
-        logger = CompositeLogger(
-            logger,
-            JsonlTraceLogger(trace_path, include_content=trace_content),
-        )
-
+    for tool in calculator_tools:
+        registry.register(tool)
     agent = AgentLoop(
         llm=llm,
         executor=ToolExecutor(registry),
-        max_steps=4,
+        max_steps=6,
         logger=logger,
     )
     return AgentSession(
         agent=agent,
         system_prompt=SYSTEM_PROMPT,
-        memory=ConversationMemory(max_turns=scenario.max_turns),
+        memory=ConversationMemory(max_turns=max_turns),
     )
 
 
-def prompt_tokens(result: AgentRunResult) -> int:
-    """汇总 provider 报告的本轮 prompt token 数。"""
+def run_turn(session: AgentSession, prompt: str) -> bool:
+    """仅将完成的回答展示给用户；异常和步骤耗尽均视为本轮失败。"""
 
-    return sum(
-        step.model_response.prompt_tokens or 0
-        for step in result.agent_steps
-    )
-
-
-def preview(text: str, limit: int = MEMORY_PREVIEW_CHARS) -> str:
-    """压缩记忆快照的终端预览，便于阅读。"""
-
-    compact = " ".join(text.split())
-    if len(compact) <= limit:
-        return compact
-    return f"{compact[:limit]}... <{len(compact) - limit} chars omitted>"
+    try:
+        result = session.run(prompt)
+    except Exception as exc:
+        print(f"本轮失败：{type(exc).__name__}: {exc}")
+        return False
+    if not result.completed:
+        print(f"本轮未完成：{result.stop_reason.value}（{result.steps} 步）。")
+        return False
+    print(f"助手：{result.response.content.strip()}")
+    return True
 
 
-def print_memory(session: AgentSession) -> None:
-    """展示本轮结束后实际保留的规范消息。"""
+def run_interactive(
+    session: AgentSession,
+    read_input: Callable[[str], str] = input,
+) -> None:
+    """命令在应用层处理，不发送给模型，也不进入会话记忆。"""
 
-    messages = session.memory.retrieve()
-    characters = sum(len(message.content) for message in messages)
-    print(
-        f"\n[Memory snapshot] turns={session.memory.turn_count}, "
-        f"messages={len(messages)}, content_characters={characters}"
-    )
-    for index, message in enumerate(messages, start=1):
-        tool = f", tool={message.tool_name}" if message.tool_name else ""
-        calls = (
-            f", calls={[call.name for call in message.tool_calls]}"
-            if message.tool_calls else ""
-        )
-        print(
-            f"  {index}. role={message.role}{tool}{calls}: "
-            f"{preview(message.content)!r}"
-        )
+    print("Agent 已就绪。输入 :help 查看命令。")
+    while True:
+        try:
+            text = read_input("你：").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\n再见！")
+            return
 
-
-def run_scenario(
-    llm: OllamaClient,
-    scenario: Scenario,
-    trace_path: Path | None = None,
-    trace_content: bool = False,
-) -> bool:
-    """运行一个场景，并打印轨迹、记忆快照和判定结果。"""
-
-    print("\n" + "=" * 78)
-    print(f"SCENARIO: {scenario.title} ({scenario.key})")
-    print(f"Memory capacity: {scenario.max_turns} complete turns")
-    print(f"Expected final answer contains: {scenario.expected!r}")
-    if scenario.rejected:
-        print(f"Expected final answer excludes: {scenario.rejected!r}")
-    print("=" * 78)
-
-    session = create_session(llm, scenario, trace_path, trace_content)
-    results: list[AgentRunResult] = []
-
-    for turn, user_content in enumerate(scenario.prompts, start=1):
-        print(f"\n>>> USER TURN {turn}: {user_content}")
-        result = session.run(user_content)
-        results.append(result)
-        print(
-            f"\n[Turn result] completed={result.completed}, "
-            f"steps={result.steps}, prompt_tokens={prompt_tokens(result)}, "
-            f"answer={result.response.content.strip()!r}"
-        )
-        print_memory(session)
-
-    final_content = results[-1].response.content.casefold()
-    passed = (
-        all(result.completed for result in results)
-        and scenario.expected.casefold() in final_content
-        and (
-            scenario.rejected is None
-            or scenario.rejected.casefold() not in final_content
-        )
-    )
-    print(f"\nSCENARIO VERDICT: {'PASS' if passed else 'FAIL'}")
-    return passed
+        command = text.lower()
+        if command == ":exit":
+            print("再见！")
+            return
+        if command == ":help":
+            print(HELP_TEXT)
+        elif command == ":clear":
+            session.memory.clear()
+            print("短期会话记忆已清除。")
+        elif command.startswith(":"):
+            print("未知命令，输入 :help 查看命令。")
+        elif text:
+            try:
+                run_turn(session, text)
+            except KeyboardInterrupt:
+                print("\n再见！")
+                return
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Visual Phase 7B AgentSession and Logger verification."
-    )
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="本地 Ollama Agent 交互入口")
+    parser.add_argument("--model", default="qwen3.5:9b", help="Ollama 聊天模型")
+    parser.add_argument("--base-url", default="http://127.0.0.1:11434")
+    parser.add_argument("--max-turns", type=int, default=5, help="保留的完整历史轮数")
+    parser.add_argument("--prompt", help="单次提问后退出")
     parser.add_argument(
-        "--scenario",
-        choices=("all", *(scenario.key for scenario in SCENARIOS)),
-        default="all",
-        help="Run all scenarios or select one shorter trace.",
+        "--log-file", type=Path, default=DEFAULT_LOG_FILE,
+        help="追加完整可读调试轨迹的文件",
     )
-    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--verbose", action="store_true", help="也在终端展示完整轨迹")
     parser.add_argument(
-        "--base-url",
-        default="http://127.0.0.1:11434",
+        "--trace-jsonl", type=Path, help="可选 JSONL 事件文件（父目录需存在）",
     )
-    parser.add_argument(
-        "--trace-jsonl",
-        type=Path,
-        help="Append versioned, metadata-only events to this JSONL file.",
-    )
-    parser.add_argument(
-        "--trace-content",
-        action="store_true",
-        help="Include raw messages, thinking, tool arguments/results in JSONL.",
-    )
-    return parser.parse_args()
-
-
-def main() -> None:
-    args = parse_args()
+    parser.add_argument("--trace-content", action="store_true", help="在 JSONL 中也记录原文")
+    args = parser.parse_args(argv)
+    if args.max_turns < 1:
+        parser.error("--max-turns must be a positive integer")
     if args.trace_content and args.trace_jsonl is None:
-        raise SystemExit("--trace-content requires --trace-jsonl")
-    selected = (
-        SCENARIOS
-        if args.scenario == "all"
-        else tuple(
-            scenario for scenario in SCENARIOS
-            if scenario.key == args.scenario
-        )
-    )
+        parser.error("--trace-content requires --trace-jsonl")
+    if args.prompt is not None and not args.prompt.strip():
+        parser.error("--prompt must not be empty")
+    return args
 
-    print(f"Model: {args.model}")
-    print(f"Scenarios: {', '.join(item.key for item in selected)}")
-    if args.trace_jsonl is not None:
-        print(f"JSONL trace: {args.trace_jsonl} (content={args.trace_content})")
-    print(
-        f"Logger previews text after {LOGGER_PREVIEW_CHARS} characters; "
-        "model context and memory remain complete."
-    )
 
-    with OllamaClient(
-        model=args.model,
-        base_url=args.base_url,
-        timeout=180.0,
-    ) as llm:
-        verdicts = [
-            run_scenario(llm, scenario, args.trace_jsonl, args.trace_content)
-            for scenario in selected
-        ]
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    with FileDebugLogger(args.log_file) as file_logger:
+        loggers: list[AgentLogger] = [file_logger]
+        if args.verbose:
+            loggers.append(HumanReadableLogger(max_text_chars=500))
+        if args.trace_jsonl is not None:
+            loggers.append(JsonlTraceLogger(
+                args.trace_jsonl, include_content=args.trace_content,
+            ))
+        logger = CompositeLogger(*loggers)
 
-    passed = sum(verdicts)
-    print("\n" + "=" * 78)
-    print(f"FINAL VERDICT: {passed}/{len(verdicts)} scenarios passed")
-    print("=" * 78)
-    if passed != len(verdicts):
-        raise SystemExit(1)
+        with OllamaClient(model=args.model, base_url=args.base_url, timeout=180.0) as llm:
+            session = create_session(llm, logger, args.max_turns)
+            print(f"模型：{args.model} | 调试日志：{args.log_file}")
+            if args.prompt is not None:
+                return 0 if run_turn(session, args.prompt) else 1
+            run_interactive(session)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
