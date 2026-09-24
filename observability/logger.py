@@ -11,6 +11,7 @@ from observability.events import (
     ModelCallFailed,
     ModelCallStarted,
     ModelResponseReceived,
+    StepPreparationFailed,
     ToolExecutionFailed,
     ToolExecutionFinished,
     ToolExecutionStarted,
@@ -29,6 +30,17 @@ class NullLogger:
 
     def log(self, event: AgentEvent) -> None:
         pass
+
+
+class CompositeLogger:
+    """Forward an event to each logger in order, without hiding failures."""
+
+    def __init__(self, *loggers: AgentLogger) -> None:
+        self._loggers = loggers
+
+    def log(self, event: AgentEvent) -> None:
+        for logger in self._loggers:
+            logger.log(event)
 
 
 class HumanReadableLogger:
@@ -61,6 +73,11 @@ class HumanReadableLogger:
             self._write(
                 f"Model call failed: {event.error_type}: {event.error}"
             )
+            self._write_duration(event.duration_ms)
+        elif isinstance(event, StepPreparationFailed):
+            self._write(
+                f"Step preparation failed: {event.error_type}: {event.error}"
+            )
         elif isinstance(event, ToolExecutionStarted):
             self._log_tool_started(event)
         elif isinstance(event, ToolExecutionFinished):
@@ -70,6 +87,7 @@ class HumanReadableLogger:
                 f"Tool execution failed: {event.call.name}: "
                 f"{event.error_type}: {event.error}"
             )
+            self._write_duration(event.duration_ms)
         elif isinstance(event, EmptyModelResponse):
             self._write(
                 "Decision: empty model response; continue to the next step."
@@ -83,6 +101,10 @@ class HumanReadableLogger:
 
     def _log_agent_started(self, event: AgentStarted) -> None:
         self._write("=== Agent run started ===")
+        if event.run_id is not None:
+            self._write(f"Run ID: {event.run_id}")
+        if event.timestamp is not None:
+            self._write(f"Started at: {event.timestamp.isoformat()}")
         self._write(f"Max steps: {event.max_steps}")
         self._write(f"Initial messages: {len(event.initial_messages)}")
 
@@ -93,6 +115,8 @@ class HumanReadableLogger:
 
     def _log_model_call_started(self, event: ModelCallStarted) -> None:
         self._write(f"\n--- Step {event.step}: model call ---")
+        if event.step_id is not None:
+            self._write(f"Step ID: {event.step_id}")
         self._write(f"History messages: {event.message_count}")
         tools = ", ".join(event.tool_names) if event.tool_names else "<none>"
         self._write(f"Available tools: {tools}")
@@ -125,6 +149,7 @@ class HumanReadableLogger:
             metrics.append(f"done_reason={response.done_reason}")
         if metrics:
             self._write(f"Model metadata: {', '.join(metrics)}")
+        self._write_duration(event.duration_ms)
 
     def _log_tool_started(self, event: ToolExecutionStarted) -> None:
         arguments = json.dumps(
@@ -144,6 +169,7 @@ class HumanReadableLogger:
                 f"Tool result: {result.tool_name} -> "
                 f"{self._preview(result.to_message_content())}"
             )
+            self._write_duration(event.duration_ms)
             return
 
         assert result.error_type is not None
@@ -151,16 +177,36 @@ class HumanReadableLogger:
             f"Tool error: {result.tool_name} "
             f"[{result.error_type.value}] -> {result.error}"
         )
+        self._write_duration(event.duration_ms)
 
     def _log_agent_finished(self, event: AgentFinished) -> None:
         self._write("\n=== Agent run finished ===")
         self._write(f"Stop reason: {event.stop_reason}")
         self._write(f"Steps: {event.steps}")
+        self._write_duration(event.duration_ms)
+        if event.metrics is not None:
+            metrics = event.metrics
+            self._write(
+                "Run metrics: "
+                f"model_calls={metrics.model_calls}, "
+                f"preparation_errors={metrics.preparation_errors}, "
+                f"model_errors={metrics.model_errors}, "
+                f"tool_calls={metrics.tool_calls}, "
+                f"tool_errors={metrics.tool_errors}, "
+                f"prompt_tokens={metrics.prompt_tokens}, "
+                f"completion_tokens={metrics.completion_tokens}, "
+                f"model_ms={metrics.model_duration_ms:.2f}, "
+                f"tool_ms={metrics.tool_duration_ms:.2f}"
+            )
         final_content = event.final_content.strip()
         self._write(
             "Final content: "
             f"{self._preview(final_content) if final_content else '<empty>'}"
         )
+
+    def _write_duration(self, duration_ms: float | None) -> None:
+        if duration_ms is not None:
+            self._write(f"Duration: {duration_ms:.2f} ms")
 
     def _write(self, text: str) -> None:
         self._stream.write(f"{text}\n")

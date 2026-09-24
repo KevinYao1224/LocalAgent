@@ -10,15 +10,20 @@ Run one scenario when you want a shorter trace:
     python main.py --scenario fact-update
     python main.py --scenario eviction
     python main.py --scenario long-tool
+
+Save a metadata-only trace alongside the readable output:
+
+    python main.py --scenario recall --trace-jsonl /tmp/opencode/agent-trace.jsonl
 """
 
 import argparse
 from dataclasses import dataclass
+from pathlib import Path
 
 from agent import AgentLoop, AgentRunResult, AgentSession
 from llm.ollama import OllamaClient
 from memory import ConversationMemory
-from observability import HumanReadableLogger
+from observability import CompositeLogger, HumanReadableLogger, JsonlTraceLogger
 from runtime import ToolExecutor
 from tools import Tool, ToolRegistry
 
@@ -119,18 +124,30 @@ SCENARIOS = (
 )
 
 
-def create_session(llm: OllamaClient, scenario: Scenario) -> AgentSession:
+def create_session(
+    llm: OllamaClient,
+    scenario: Scenario,
+    trace_path: Path | None = None,
+    trace_content: bool = False,
+) -> AgentSession:
     """Build the same public AgentSession stack an application would use."""
 
     registry = ToolRegistry()
     if scenario.include_archive_tool:
         registry.register(archive_tool)
 
+    logger = HumanReadableLogger(max_text_chars=LOGGER_PREVIEW_CHARS)
+    if trace_path is not None:
+        logger = CompositeLogger(
+            logger,
+            JsonlTraceLogger(trace_path, include_content=trace_content),
+        )
+
     agent = AgentLoop(
         llm=llm,
         executor=ToolExecutor(registry),
         max_steps=4,
-        logger=HumanReadableLogger(max_text_chars=LOGGER_PREVIEW_CHARS),
+        logger=logger,
     )
     return AgentSession(
         agent=agent,
@@ -178,7 +195,12 @@ def print_memory(session: AgentSession) -> None:
         )
 
 
-def run_scenario(llm: OllamaClient, scenario: Scenario) -> bool:
+def run_scenario(
+    llm: OllamaClient,
+    scenario: Scenario,
+    trace_path: Path | None = None,
+    trace_content: bool = False,
+) -> bool:
     """Run one scenario and print traces, memory snapshots, and verdict."""
 
     print("\n" + "=" * 78)
@@ -189,7 +211,7 @@ def run_scenario(llm: OllamaClient, scenario: Scenario) -> bool:
         print(f"Expected final answer excludes: {scenario.rejected!r}")
     print("=" * 78)
 
-    session = create_session(llm, scenario)
+    session = create_session(llm, scenario, trace_path, trace_content)
     results: list[AgentRunResult] = []
 
     for turn, user_content in enumerate(scenario.prompts, start=1):
@@ -231,11 +253,23 @@ def parse_args() -> argparse.Namespace:
         "--base-url",
         default="http://127.0.0.1:11434",
     )
+    parser.add_argument(
+        "--trace-jsonl",
+        type=Path,
+        help="Append versioned, metadata-only events to this JSONL file.",
+    )
+    parser.add_argument(
+        "--trace-content",
+        action="store_true",
+        help="Include raw messages, thinking, tool arguments/results in JSONL.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if args.trace_content and args.trace_jsonl is None:
+        raise SystemExit("--trace-content requires --trace-jsonl")
     selected = (
         SCENARIOS
         if args.scenario == "all"
@@ -247,6 +281,8 @@ def main() -> None:
 
     print(f"Model: {args.model}")
     print(f"Scenarios: {', '.join(item.key for item in selected)}")
+    if args.trace_jsonl is not None:
+        print(f"JSONL trace: {args.trace_jsonl} (content={args.trace_content})")
     print(
         f"Logger previews text after {LOGGER_PREVIEW_CHARS} characters; "
         "model context and memory remain complete."
@@ -257,7 +293,10 @@ def main() -> None:
         base_url=args.base_url,
         timeout=180.0,
     ) as llm:
-        verdicts = [run_scenario(llm, scenario) for scenario in selected]
+        verdicts = [
+            run_scenario(llm, scenario, args.trace_jsonl, args.trace_content)
+            for scenario in selected
+        ]
 
     passed = sum(verdicts)
     print("\n" + "=" * 78)

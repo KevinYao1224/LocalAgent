@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 from llm.base import Message, ModelResponse, ReasoningBlock, ToolCall
 from runtime.result import ToolResult
@@ -28,6 +30,7 @@ class AgentStep:
     model_response: ModelResponse
     reasoning: ReasoningBlock | None = None
     tool_executions: list[ToolExecution] = field(default_factory=list)
+    step_id: str | None = None
 
     @property
     def tool_results(self) -> list[ToolResult]:
@@ -48,6 +51,10 @@ class AgentState:
     """
 
     max_steps: int
+    run_id: str = field(default_factory=lambda: uuid4().hex)
+    started_at: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     step: int = 0
     trajectory: list[TrajectoryEntry] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -121,6 +128,13 @@ class AgentState:
         self.step += 1
         return self.step
 
+    def step_id(self, step: int) -> str:
+        """Stable identity for a model attempt, including failed attempts."""
+
+        if step < 1 or step > self.step:
+            raise ValueError("Step must refer to a started model attempt.")
+        return f"{self.run_id}:{step}"
+
     def record_model_response(
         self,
         response: ModelResponse,
@@ -139,6 +153,7 @@ class AgentState:
             step=self.step,
             model_response=response,
             reasoning=reasoning,
+            step_id=self.step_id(self.step),
         )
         self.trajectory.append(agent_step)
         return agent_step
