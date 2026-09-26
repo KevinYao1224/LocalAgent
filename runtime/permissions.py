@@ -3,6 +3,7 @@
 import os
 import stat
 import errno
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,12 +14,14 @@ from tools.base import PermissionDeniedError, ToolExecutionError
 class ReadTextPolicy:
     """仅允许读取受信任目录下的普通 UTF-8 文件，按字节限制结果。
 
-    root 是调用方授予的目录，不从模型输入推导。路径逐段以目录 fd 打开，
-    不跟随符号链接；这避免简单的目录穿越和检查/打开之间的 symlink 竞态。
+    root 是调用方授予的目录，不从模型输入推导。allowed_paths 可将授权
+    缩小到精确相对文件名；None 保持整个 root 内的原有读取范围，空集合拒绝所有文件。
+    路径逐段以目录 fd 打开，不跟随符号链接。
     """
 
     root: Path
     max_bytes: int = 4096
+    allowed_paths: Iterable[str] | None = None
 
     def __post_init__(self) -> None:
         root = Path(self.root)
@@ -30,20 +33,27 @@ class ReadTextPolicy:
             or self.max_bytes < 1
         ):
             raise ValueError("max_bytes must be a positive integer.")
+        if self.allowed_paths is not None:
+            if isinstance(self.allowed_paths, (str, bytes)):
+                raise ValueError("allowed_paths must be an iterable of relative file paths.")
+            try:
+                configured_paths = tuple(self.allowed_paths)
+            except TypeError as exc:
+                raise ValueError("allowed_paths must be iterable.") from exc
+            if any(not _is_relative_file_path(path) for path in configured_paths):
+                raise ValueError("allowed_paths must contain only valid relative file paths.")
+            # 拷贝成不可变集合；调用方之后修改原列表不应悄悄扩大授权。
+            object.__setattr__(self, "allowed_paths", frozenset(configured_paths))
         object.__setattr__(self, "root", root)
 
     def read_text(self, path: str) -> str:
         """模型给出相对路径；越权返回明确拒绝，I/O 错误保持执行错误。"""
 
-        if (
-            not isinstance(path, str) or not path
-            or "\x00" in path or "\\" in path
-            or path.startswith("/")
-        ):
-            raise PermissionDeniedError("Only relative file paths are permitted.")
+        if not _is_relative_file_path(path):
+            raise PermissionDeniedError("Only normalized relative file paths are permitted.")
         parts = path.split("/")
-        if any(part in ("", ".", "..") for part in parts):
-            raise PermissionDeniedError("Empty, '.' and '..' path components are denied.")
+        if self.allowed_paths is not None and path not in self.allowed_paths:
+            raise PermissionDeniedError("File is not in the authorized path list.")
 
         directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
         file_flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
@@ -83,3 +93,14 @@ class ReadTextPolicy:
         finally:
             for fd in reversed(opened):
                 os.close(fd)
+
+
+def _is_relative_file_path(path: object) -> bool:
+    """配置与模型输入使用同一规则；不接受可绕过精确匹配的路径写法。"""
+
+    return (
+        isinstance(path, str) and bool(path)
+        and "\x00" not in path and "\\" not in path
+        and not path.startswith("/")
+        and all(part not in ("", ".", "..") for part in path.split("/"))
+    )
