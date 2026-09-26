@@ -23,6 +23,7 @@
 | `memory/` | 短期会话历史、SQLite 长期记忆和语义检索 |
 | `observability/` | 结构化事件、人类可读日志、JSONL trace 和运行指标 |
 | `experiments/` | 确定性离线实验及需要本地 Ollama 的集成实验 |
+| `evaluation/` | Phase 13 声明式用例、运行后评分和可读汇总 |
 | `agent_docs/` | 开发路线、阶段记录、架构导览和开发交接文档 |
 
 ## 环境准备
@@ -81,5 +82,6 @@ mkdir -p /tmp/opencode
 
 ## 当前开发位置
 
-Phase 12 的结构化 trace 与运行指标已完成，下一条主线是 Phase 13 Evaluation。
-这不代表开发路线中编号在 12 之前的其他阶段都已完成；请以路线文档的具体状态为准。
+Phase 13 离线及在线评测已完成；可运行 `.venv/bin/python experiments/evaluation_experiment.py`
+或在 Ollama 可用时运行 `.venv/bin/python experiments/evaluation_live_experiment.py --repeats 3`。
+下一条建议主线是 Phase 9A 最小 Planner；阶段编号不表示中间阶段已完成，详见路线文档。
