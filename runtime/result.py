@@ -10,6 +10,7 @@ class ToolErrorType(str, Enum):
 
     TOOL_NOT_FOUND = "tool_not_found"
     TOOL_NOT_AVAILABLE = "tool_not_available"
+    PERMISSION_DENIED = "permission_denied"
     VALIDATION_ERROR = "validation_error"
     EXECUTION_ERROR = "execution_error"
 

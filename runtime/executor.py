@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 
 from llm.base import ToolCall
+from runtime.permissions import PermissionDeniedError
 from runtime.result import ToolErrorType, ToolResult
 from runtime.validation import (
     ToolArgumentsValidationError,
@@ -119,6 +120,12 @@ class ToolExecutor:
 
         try:
             value = tool.execute(call.arguments)
+        except PermissionDeniedError as exc:
+            return ToolResult.failed(
+                tool_name=call.name,
+                error=str(exc),
+                error_type=ToolErrorType.PERMISSION_DENIED,
+            )
         except ToolExecutionError as exc:
             return ToolResult.failed(
                 tool_name=call.name,

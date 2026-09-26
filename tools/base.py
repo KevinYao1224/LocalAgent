@@ -9,6 +9,10 @@ class ToolExecutionError(Exception):
     pass
 
 
+class PermissionDeniedError(ToolExecutionError):
+    """工具自身施加的资源授权拒绝；允许 Runtime 单独分类。"""
+
+
 @dataclass(slots=True)
 class Tool:
     name: str
@@ -27,6 +31,9 @@ class Tool:
 
         try:
             return self.handler(**arguments)
+        except PermissionDeniedError:
+            # 只放行权限拒绝；其他 handler 异常仍保留原有包装行为。
+            raise
         except Exception as exc:
             raise ToolExecutionError(
                 f"Tool '{self.name}' failed: {exc}"
