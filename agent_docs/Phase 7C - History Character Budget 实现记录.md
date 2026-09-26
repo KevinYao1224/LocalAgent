@@ -190,10 +190,9 @@ available”，第二次模型调用为 399 tokens 并回答 `UNKNOWN`。这证�
 - 历史被排除不等于事实必然不可获得：模型可能再次调用仍可用的工具。Memory
   evaluation 必须隔离或显式记录这种重新获取路径。
 
-## 下一阶段建议
+## 当时的后续建议（Phase 12 已实现）
 
 Phase 7 的最小短期记忆链路已经具备完整轮次存储、真实跨轮基线与可观察字符预算。
-下一步优先进入 Structured Trace + Evaluation：先为 run/step 增加稳定标识、时间戳、
-延迟和 JSONL 输出，再把现有确定性实验逐步组织成可汇总的 evaluation cases。这样
-以后比较摘要、token budget 或模型变更时，才能用同一套指标证明效果，而不是只看
-单次回答。
+当时建议先补 Structured Trace 再做 Evaluation；run/step 标识、时间戳、延迟和
+JSONL 已在 Phase 12 实现。现有确定性实验仍待组织成可汇总的 Phase 13 cases，
+以便比较摘要、token budget 或模型变更，而不是只看单次回答。

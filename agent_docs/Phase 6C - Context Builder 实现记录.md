@@ -302,8 +302,8 @@ conversation，故启用 replay 也不会改变公开的正式历史。
 
 新增：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\context_builder_experiment.py
+```bash
+.venv/bin/python experiments/context_builder_experiment.py
 ```
 
 该实验不需要 Ollama，覆盖：
@@ -326,8 +326,8 @@ conversation，故启用 replay 也不会改变公开的正式历史。
 
 新增：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\reasoning_replay_ab_experiment.py --runs 3
+```bash
+.venv/bin/python experiments/reasoning_replay_ab_experiment.py --runs 3
 ```
 
 实验使用本地 `qwen3.5:9b` 完成两步算术工具任务，并交替执行 `off` 与
@@ -371,21 +371,8 @@ prompt / completion tokens
 
 ## 11. 完整回归
 
-Phase 6C 完成后，以下检查全部通过：
-
-```powershell
-.\.venv\Scripts\python.exe experiments\reasoning_continuity_experiment.py
-.\.venv\Scripts\python.exe experiments\context_builder_experiment.py
-.\.venv\Scripts\python.exe experiments\conversation_projection_experiment.py
-.\.venv\Scripts\python.exe experiments\trajectory_experiment.py
-.\.venv\Scripts\python.exe experiments\logging_experiment.py
-.\.venv\Scripts\python.exe experiments\multiple_tools_experiment.py
-.\.venv\Scripts\python.exe experiments\agent_loop_experiment.py
-.\.venv\Scripts\python.exe experiments\schema_validation_experiment.py
-.\.venv\Scripts\python.exe experiments\tool_executor_experiment.py
-.\.venv\Scripts\python.exe -m compileall -q agent llm runtime tools observability main.py experiments
-git diff --check
-```
+Phase 6C 完成时上述两个实验及相关轨迹、工具、日志回归和编译检查均通过；
+当前运行方式见[代码与实验阅读指南](./代码与实验阅读指南.md)。
 
 现有工具调用、失败 observation、schema validation、日志、max_steps、空响应、
 canonical projection 和 trajectory 行为均未回归。

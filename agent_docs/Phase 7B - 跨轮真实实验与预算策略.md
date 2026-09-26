@@ -23,33 +23,28 @@ experiments/conversation_memory_live_experiment.py
 
 ### 可视化核验入口
 
-`main.py` 提供同一组场景的人类可读版本。它不绕过正式组件，而是为每个场景
-创建标准调用链：
+当前交互入口 `main.py` 已不再提供 `--scenario`。用上述在线实验复现四个场景；
+它为每个场景创建标准调用链：
 
 ```text
 AgentSession
     → ConversationMemory
     → AgentLoop
-    → HumanReadableLogger
     → OllamaClient
 ```
 
-运行全部场景或单个场景：
+实验一次运行全部四个场景；`--help` 可查看模型、服务地址和重复次数参数：
 
 ```bash
-.venv/bin/python main.py
-.venv/bin/python main.py --scenario recall
-.venv/bin/python main.py --scenario fact-update
-.venv/bin/python main.py --scenario eviction
-.venv/bin/python main.py --scenario long-tool
+.venv/bin/python experiments/conversation_memory_live_experiment.py --help
+.venv/bin/python experiments/conversation_memory_live_experiment.py --runs 3
 ```
 
-每个 user turn 后会显示 run 是否完成、step 数、prompt tokens，以及实际提交后的
-Memory canonical message 快照。最后输出场景 PASS/FAIL；存在失败时进程返回非零
-状态，便于人工观察之外也被脚本调用。
+这些场景的设计和结果属于当时的小样本观察；当前日常交互请运行
+`.venv/bin/python main.py`。
 
 为了避免长工具结果淹没终端，`HumanReadableLogger` 新增可选
-`max_text_chars`。`main.py` 设为 500 字符，Memory 快照另显示前 100 字符。
+`max_text_chars`。当前 `main.py --verbose` 的终端输出设为 500 字符。
 截断只发生在格式化输出层，event、模型上下文和 Memory 中的数据保持完整；默认
 `max_text_chars=None` 仍完整输出，因此现有 Logger 行为不变。
 

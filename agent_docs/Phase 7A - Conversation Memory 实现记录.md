@@ -8,7 +8,7 @@ A/B 支持保留默认 replay off。本阶段的验证目标是跨轮上下文�
 
 新增 `memory/conversation.py` 的 `ConversationMemory` 和 `agent/session.py`
 的 `AgentSession`。只保存进程内最近 N 个完整、已完成的用户轮次。默认 N=5。
-Phase 7 整体尚未完成；token budget、摘要和检索继续留待后续。
+本阶段仅实现短期轮次窗口；7C 后来增加检索时的完整轮次字符预算，精确 token budget 和摘要仍未实现。
 
 ## 生命周期与依赖
 
@@ -93,8 +93,8 @@ session.memory.clear()
 
 运行：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\conversation_memory_experiment.py
+```bash
+.venv/bin/python experiments/conversation_memory_experiment.py
 ```
 
 实验使用确定性模拟模型，其中 RecallLLM 根据实际收到的历史是否包含项目名

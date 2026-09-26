@@ -128,8 +128,8 @@ JSON Schema 负责模型输入验证，Python signature binding 继续作为 sch
 
 运行：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\schema_validation_experiment.py
+```bash
+.venv/bin/python experiments/schema_validation_experiment.py
 ```
 
 实验工具包含 enum、整数范围、数组和嵌套对象，覆盖：

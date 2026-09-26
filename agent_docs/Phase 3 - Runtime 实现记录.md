@@ -143,8 +143,8 @@ history.append(Message(
 
 运行：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\tool_executor_experiment.py
+```bash
+.venv/bin/python experiments/tool_executor_experiment.py
 ```
 
 覆盖四条路径：
@@ -160,8 +160,8 @@ history.append(Message(
 
 运行：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\agent_loop_experiment.py
+```bash
+.venv/bin/python experiments/agent_loop_experiment.py
 ```
 
 原有四个控制流实验继续通过，并新增对 `result.tool_results` 的断言。这验证了提取 Runtime 后消息顺序、错误恢复和步数限制没有改变。

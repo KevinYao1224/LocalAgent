@@ -64,10 +64,10 @@ ISO-8601 字符串，`duration_ms` 在未计时事件上为 `null`。`data` 随�
 模型/执行器/准备失败、max_steps、默认内容排除、显式内容记录、非法 payload 和
 缺失目录的失败传播。临时 JSONL 在 `/tmp/opencode` 下，实验退出自动清理。
 
-已有 `main.py` 入口可与 Ollama 一同运行（目录先存在）：
+当前 `main.py` 入口可与 Ollama 一同运行（目录先存在）：
 
 ```bash
-.venv/bin/python main.py --scenario recall --trace-jsonl /tmp/opencode/agent-trace.jsonl
+.venv/bin/python main.py --prompt '计算 12 + 7' --trace-jsonl /tmp/opencode/agent-trace.jsonl
 # 如确需保留原始内容，再显式附加 --trace-content
 .venv/bin/python -c 'import json; from pathlib import Path; p=Path("/tmp/opencode/agent-trace.jsonl"); print(*[json.loads(line) for line in p.read_text().splitlines() if json.loads(line)["event"] == "AgentFinished"], sep="\n")'
 ```

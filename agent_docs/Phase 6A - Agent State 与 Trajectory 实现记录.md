@@ -236,8 +236,8 @@ AgentStep。只分析模型步骤的调用方应使用 `result.agent_steps`。
 
 ### Conversation Projection 实验
 
-```powershell
-.\.venv\Scripts\python.exe experiments\conversation_projection_experiment.py
+```bash
+.venv/bin/python experiments/conversation_projection_experiment.py
 ```
 
 验证：
@@ -251,8 +251,8 @@ AgentStep。只分析模型步骤的调用方应使用 `result.agent_steps`。
 
 ### Trajectory 实验
 
-```powershell
-.\.venv\Scripts\python.exe experiments\trajectory_experiment.py
+```bash
+.venv/bin/python experiments/trajectory_experiment.py
 ```
 
 验证正常完成、工具失败、空响应、thinking-only、max_steps 和 provider
@@ -260,18 +260,8 @@ AgentStep。只分析模型步骤的调用方应使用 `result.agent_steps`。
 
 ## 9. 回归验证
 
-以下命令全部通过：
-
-```powershell
-.\.venv\Scripts\python.exe experiments\conversation_projection_experiment.py
-.\.venv\Scripts\python.exe experiments\trajectory_experiment.py
-.\.venv\Scripts\python.exe experiments\logging_experiment.py
-.\.venv\Scripts\python.exe experiments\multiple_tools_experiment.py
-.\.venv\Scripts\python.exe experiments\agent_loop_experiment.py
-.\.venv\Scripts\python.exe experiments\schema_validation_experiment.py
-.\.venv\Scripts\python.exe experiments\tool_executor_experiment.py
-.\.venv\Scripts\python.exe -m compileall -q agent llm runtime tools observability main.py experiments
-```
+阶段完成时上述实验及相关工具/日志实验均通过；当前按模块复跑命令见
+[代码与实验阅读指南](./代码与实验阅读指南.md)。
 
 现有日志文本、消息角色顺序、工具错误恢复和 max_steps 行为保持不变。本阶段
 没有运行真实 Ollama，因为修改位于 provider-neutral 的状态和 projection

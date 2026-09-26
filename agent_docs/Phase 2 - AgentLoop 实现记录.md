@@ -99,8 +99,8 @@ Message(role="tool", content="Error: ...")
 
 运行：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\agent_loop_experiment.py
+```bash
+.venv/bin/python experiments/agent_loop_experiment.py
 ```
 
 该实验使用 `ScriptedLLM`，不需要启动 Ollama。它不模拟语言能力，只固定返回准备好的响应，从而单独检验 Runtime 控制流。

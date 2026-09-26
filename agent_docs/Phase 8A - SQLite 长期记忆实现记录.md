@@ -2,7 +2,7 @@
 
 ## Phase 8 的总体目标与当前进度
 
-Phase 8 要在 Phase 7 的短期完整轮次记忆之外，提供跨进程持久化和相关内容检索；路线规划从 SQLite 的 `id / text / created_at / metadata` 起步，后续再研究 chunking、embedding、cosine similarity、top-k、metadata filtering 和写入策略。当前 **8A 已完成文本与 metadata 持久化、限定范围的字面子串检索、显式读写和可选的会话注入**。语义 embedding、自动写入、跨用户共享与向量搜索仍是后续阶段。
+Phase 8 在 Phase 7 的短期完整轮次记忆之外提供跨进程持久化与检索。**8A 完成**文本与 metadata 持久化、限定范围的字面子串检索、显式读写和可选的会话注入；检索预算与语义 embedding / cosine top-k 后续分别由 8B、8C 实现。自动写入和跨用户共享仍未实现。
 
 ## 依赖方向与 API
 
@@ -48,6 +48,6 @@ print([item.id for item in session.last_retrieval])
 
 ## 后续设计记录
 
-- 下一小步可以补充按 namespace 的删除/更新与保留期限，再研究检索的字符/token 预算；目前 limit 只控制条数，不限制单条文本长度。
+- 按 namespace 的删除/更新与保留期限仍待研究。8B 已增加检索字符预算，但 `retrieval_limit` 本身只控制条数；精确 token 预算仍未实现。
 - 大规模记录需要索引/全文检索与明确的 Unicode 规范化，再考虑 embedding / 相似度评估。评测应区分检索命中、模型是否采纳正确事实和是否误执行记忆中的指令。
 - 与 Phase 12/13 的结构化 trace 和 evaluation 对接时，保留命中 id、namespace（注意访问控制）、query、筛选条件和数量；当前仅提供 `last_retrieval` 和可审计 trajectory，不声称已完成统一 trace。

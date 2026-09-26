@@ -108,8 +108,8 @@ and response.content.strip()
 
 新增：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\multiple_tools_experiment.py
+```bash
+.venv/bin/python experiments/multiple_tools_experiment.py
 ```
 
 覆盖四种行为。

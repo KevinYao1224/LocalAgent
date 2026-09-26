@@ -180,8 +180,8 @@ provider capability 不会隐式改变上下文
 
 新增：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\reasoning_continuity_experiment.py
+```bash
+.venv/bin/python experiments/reasoning_continuity_experiment.py
 ```
 
 不依赖 Ollama server，覆盖：
@@ -192,19 +192,8 @@ provider capability 不会隐式改变上下文
 
 ## 8. 回归验证
 
-以下实验和编译检查全部通过：
-
-```powershell
-.\.venv\Scripts\python.exe experiments\reasoning_continuity_experiment.py
-.\.venv\Scripts\python.exe experiments\conversation_projection_experiment.py
-.\.venv\Scripts\python.exe experiments\trajectory_experiment.py
-.\.venv\Scripts\python.exe experiments\logging_experiment.py
-.\.venv\Scripts\python.exe experiments\multiple_tools_experiment.py
-.\.venv\Scripts\python.exe experiments\agent_loop_experiment.py
-.\.venv\Scripts\python.exe experiments\schema_validation_experiment.py
-.\.venv\Scripts\python.exe experiments\tool_executor_experiment.py
-.\.venv\Scripts\python.exe -m compileall -q agent llm runtime tools observability main.py experiments
-```
+阶段完成时上述实验及相关轨迹/工具回归与编译检查通过；当前实验入口见
+[代码与实验阅读指南](./代码与实验阅读指南.md)。
 
 现有日志、消息角色顺序、工具错误恢复、空响应处理和 max_steps 行为不变。
 

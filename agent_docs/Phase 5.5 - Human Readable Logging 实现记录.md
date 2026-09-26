@@ -142,8 +142,8 @@ AgentLoop(
 
 新增：
 
-```powershell
-.\.venv\Scripts\python.exe experiments\logging_experiment.py
+```bash
+.venv/bin/python experiments/logging_experiment.py
 ```
 
 实验使用 `StringIO` 捕获日志，覆盖：
