@@ -7,6 +7,16 @@ from agent.context import (
 )
 from agent.conversation import ConversationProjector
 from agent.loop import AgentLoop, AgentRunResult, StopReason
+from agent.planner import (
+    CalculatorPlanner,
+    Plan,
+    PlanExecution,
+    PlanRunResult,
+    PlanState,
+    PlanStep,
+    PlanStopReason,
+    StepReference,
+)
 from agent.session import AgentSession
 from agent.state import (
     AgentState,
@@ -22,12 +32,20 @@ __all__ = [
     "AgentSession",
     "AgentState",
     "AgentStep",
+    "CalculatorPlanner",
     "ContextBuilder",
     "ContextBuildResult",
     "ConversationProjector",
     "InputMessage",
+    "Plan",
+    "PlanExecution",
+    "PlanRunResult",
+    "PlanState",
+    "PlanStep",
+    "PlanStopReason",
     "ReasoningReplayPolicy",
     "StopReason",
+    "StepReference",
     "ToolExecution",
     "TrajectoryEntry",
 ]

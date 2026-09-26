@@ -16,7 +16,7 @@
 
 | 目录 | 职责 |
 |---|---|
-| `agent/` | Agent 会话、控制循环、运行状态、轨迹和模型上下文构建 |
+| `agent/` | Agent 会话、控制循环、运行状态、轨迹、上下文构建及可选计算器 Planner |
 | `llm/` | provider-neutral 模型类型，以及 Ollama 聊天和 embedding 适配器 |
 | `runtime/` | 工具能力门控、参数校验、执行和统一结果 |
 | `tools/` | 工具定义、注册表和计算器示例 |
@@ -82,6 +82,7 @@ mkdir -p /tmp/opencode
 
 ## 当前开发位置
 
-Phase 13 离线及在线评测已完成；可运行 `.venv/bin/python experiments/evaluation_experiment.py`
-或在 Ollama 可用时运行 `.venv/bin/python experiments/evaluation_live_experiment.py --repeats 3`。
-下一条建议主线是 Phase 9A 最小 Planner；阶段编号不表示中间阶段已完成，详见路线文档。
+Phase 9 计算器 Planner / Executor 已作为独立可选路径实现：
+`.venv/bin/python experiments/planner_experiment.py` 可离线观察规划、验证和逐步执行；
+在 Ollama 可用时运行 `.venv/bin/python experiments/planner_live_experiment.py --repeats 3`
+与 Phase 13 基线做小样本对照。默认交互入口仍使用 `AgentLoop`；详情见路线文档。
