@@ -82,6 +82,17 @@ class EmptyModelResponse(EventMetadata):
 
 
 @dataclass(frozen=True, slots=True)
+class RecoveryDecision(EventMetadata):
+    """整批工具调用结束后，对失败结果作出的有界恢复决定。"""
+
+    step: int
+    error_types: tuple[str, ...]
+    decision: str
+    corrections_used: int
+    self_critique_next_step: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class AgentFinished(EventMetadata):
     steps: int
     stop_reason: str
@@ -99,5 +110,6 @@ AgentEvent = (
     | ToolExecutionFinished
     | ToolExecutionFailed
     | EmptyModelResponse
+    | RecoveryDecision
     | AgentFinished
 )

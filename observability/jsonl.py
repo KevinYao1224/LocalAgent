@@ -16,6 +16,7 @@ from observability.events import (
     ModelCallFailed,
     ModelCallStarted,
     ModelResponseReceived,
+    RecoveryDecision,
     StepPreparationFailed,
     ToolExecutionFailed,
     ToolExecutionFinished,
@@ -129,6 +130,14 @@ def event_record(event: AgentEvent, *, include_content: bool = False) -> dict[st
             data["error"] = event.error
     elif isinstance(event, EmptyModelResponse):
         data = {"step": event.step}
+    elif isinstance(event, RecoveryDecision):
+        data = {
+            "step": event.step,
+            "error_types": list(event.error_types),
+            "decision": event.decision,
+            "corrections_used": event.corrections_used,
+            "self_critique_next_step": event.self_critique_next_step,
+        }
     elif isinstance(event, AgentFinished):
         data = {
             "steps": event.steps,

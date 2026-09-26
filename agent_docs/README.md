@@ -18,6 +18,8 @@
 - 可观测性：[12A 标识和计时](./Phase%2012A%20-%20Run%20Step%20标识与计时实现记录.md) → [12B JSONL](./Phase%2012B%20-%20JSONL%20Trace%20与运行指标实现记录.md) → [交互入口与文件日志](./交互入口与文件调试日志实现记录.md)。
 - 任务评测：[Phase 13 离线与在线 Evaluation](./Phase%2013%20-%20Evaluation%20实现记录.md)。
 - 规划执行：[Phase 9 Calculator Planner / Executor](./Phase%209%20-%20Calculator%20Planner%20Executor%20实现记录.md)。
+- 有界恢复：[Phase 10A 工具错误分类与模型纠正](./Phase%2010A%20-%20有界工具错误恢复实现记录.md)。
+- 自检与评测：[Phase 10B 自检提示与在线对照](./Phase%2010B%20-%20自检提示与对照评测实现记录.md)。
 - 带日期的环境/模型实验：[2026-09-22 Ollama 集成记录](./2026-09-22%20Ollama%20WSL%20Mirror%20集成测试记录.md)。其延迟、token 和成功率仅反映当时的小样本。
 
 阶段记录保留当时的设计推理与测试结果；其中“下一阶段”不代表现状。实际入口以仓库根目录的 `README.md`、本目录的阅读指南和当前代码为准。

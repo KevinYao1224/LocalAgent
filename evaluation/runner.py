@@ -11,7 +11,7 @@ from llm.base import LLM, Message, ModelResponse
 from memory import SQLiteLongTermMemory
 from observability.events import AgentEvent, AgentFinished
 from observability.metrics import RunMetrics
-from runtime import ToolExecutor
+from runtime import RecoveryPolicy, ToolExecutor
 from tools import ToolRegistry, calculator_tools
 
 
@@ -128,14 +128,22 @@ class _FinishCollector:
             self.finished = event
 
 
-def evaluate(case: EvaluationCase, llm: LLM) -> CaseResult:
+def evaluate(
+    case: EvaluationCase,
+    llm: LLM,
+    *,
+    recovery_policy: RecoveryPolicy | None = None,
+) -> CaseResult:
     """每个 case 用新的 Agent/存储运行；运行异常计入失败样本。"""
 
     registry = ToolRegistry()
     for tool in calculator_tools:
         registry.register(tool)
     logger = _FinishCollector()
-    agent = AgentLoop(llm, ToolExecutor(registry), max_steps=case.max_steps, logger=logger)
+    agent = AgentLoop(
+        llm, ToolExecutor(registry), max_steps=case.max_steps,
+        logger=logger, recovery_policy=recovery_policy,
+    )
     result = None
     retrieved: tuple[str, ...] = ()
     failure: str | None = None

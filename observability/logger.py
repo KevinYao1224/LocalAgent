@@ -12,6 +12,7 @@ from observability.events import (
     ModelCallFailed,
     ModelCallStarted,
     ModelResponseReceived,
+    RecoveryDecision,
     StepPreparationFailed,
     ToolExecutionFailed,
     ToolExecutionFinished,
@@ -92,6 +93,13 @@ class HumanReadableLogger:
         elif isinstance(event, EmptyModelResponse):
             self._write(
                 "Decision: empty model response; continue to the next step."
+            )
+        elif isinstance(event, RecoveryDecision):
+            self._write(
+                f"Recovery decision: {event.decision}; "
+                f"errors={', '.join(event.error_types)}; "
+                f"corrections_used={event.corrections_used}; "
+                f"self_critique_next_step={event.self_critique_next_step}"
             )
         elif isinstance(event, AgentFinished):
             self._log_agent_finished(event)

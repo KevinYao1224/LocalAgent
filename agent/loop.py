@@ -15,6 +15,7 @@ from observability.events import (
     ModelCallFailed,
     ModelCallStarted,
     ModelResponseReceived,
+    RecoveryDecision,
     StepPreparationFailed,
     ToolExecutionFailed,
     ToolExecutionFinished,
@@ -23,6 +24,12 @@ from observability.events import (
 from observability.logger import AgentLogger, NullLogger
 from observability.metrics import RunMetrics
 from runtime.executor import ToolExecutor
+from runtime.recovery import (
+    SELF_CRITIQUE_PROMPT,
+    RecoveryClass,
+    RecoveryPolicy,
+    classify_tool_failure,
+)
 from runtime.result import ToolResult
 
 
@@ -31,6 +38,8 @@ class StopReason(str, Enum):
 
     COMPLETED = "completed"
     MAX_STEPS = "max_steps"
+    RECOVERY_EXHAUSTED = "recovery_exhausted"
+    UNRECOVERABLE_TOOL_ERROR = "unrecoverable_tool_error"
 
 
 @dataclass(slots=True)
@@ -93,6 +102,7 @@ class AgentLoop:
         max_steps: int = 5,
         logger: AgentLogger | None = None,
         context_builder: ContextBuilder | None = None,
+        recovery_policy: RecoveryPolicy | None = None,
     ) -> None:
         if max_steps < 1:
             raise ValueError("max_steps must be at least 1.")
@@ -106,6 +116,7 @@ class AgentLoop:
             if context_builder is not None
             else ContextBuilder()
         )
+        self._recovery_policy = recovery_policy
         self._last_state: AgentState | None = None
 
     @property
@@ -127,6 +138,8 @@ class AgentLoop:
         self._last_state = state
         last_response: ModelResponse | None = None
         metrics = RunMetrics()
+        corrections_used = 0
+        critique_next_step = False
         run_start = perf_counter()
 
         self._emit(state, AgentStarted(
@@ -139,6 +152,12 @@ class AgentLoop:
             try:
                 available_tools = self._executor.available_tools()
                 context = self._context_builder.build(state, self._llm)
+                if critique_next_step:
+                    # 只修改本次模型请求；不伪造外部输入或写入正式会话历史。
+                    context.messages.append(Message(
+                        role="user", content=SELF_CRITIQUE_PROMPT,
+                    ))
+                    critique_next_step = False
             except Exception as exc:
                 metrics = replace(
                     metrics,
@@ -216,6 +235,9 @@ class AgentLoop:
                 self._emit(state, EmptyModelResponse(step=step), step=step)
                 continue
 
+            # 当前响应的工具按原顺序各执行一次；整批结束后再判断是否允许下一轮纠正。
+            # 不自动重放任何工具，尤其不重放可能已有副作用的 handler。
+            failures: list[ToolResult] = []
             for call in response.tool_calls:
                 self._emit(state, ToolExecutionStarted(
                     step=step,
@@ -253,6 +275,42 @@ class AgentLoop:
                     result=tool_result,
                 ), step=step, duration_ms=tool_duration_ms)
                 state.record_tool_execution(call, tool_result)
+                if not tool_result.success:
+                    failures.append(tool_result)
+
+            if failures and self._recovery_policy is not None:
+                if any(
+                    classify_tool_failure(failure) is RecoveryClass.TERMINAL
+                    for failure in failures
+                ):
+                    reason = StopReason.UNRECOVERABLE_TOOL_ERROR
+                elif corrections_used >= self._recovery_policy.max_corrections:
+                    reason = StopReason.RECOVERY_EXHAUSTED
+                elif state.step >= state.max_steps:
+                    reason = StopReason.MAX_STEPS
+                else:
+                    corrections_used += 1
+                    critique_next_step = self._recovery_policy.self_critique
+                    reason = None
+
+                self._emit(state, RecoveryDecision(
+                    step=step,
+                    error_types=tuple(
+                        failure.error_type.value for failure in failures
+                    ),
+                    decision="continue" if reason is None else reason.value,
+                    corrections_used=corrections_used,
+                    self_critique_next_step=critique_next_step,
+                ), step=step)
+                if reason is not None:
+                    result = AgentRunResult(
+                        response=response,
+                        state=state,
+                        stop_reason=reason,
+                        metrics=metrics,
+                    )
+                    self._log_finished(result, run_start)
+                    return result
 
         # max_steps 至少为 1，因此循环必定会为该变量赋值。
         assert last_response is not None
